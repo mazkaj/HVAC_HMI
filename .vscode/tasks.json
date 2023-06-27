@@ -1,0 +1,29 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "PlatformIO",
+			"task": "Remote Monitor",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Remote Monitor"
+		},
+		{
+			"type": "PlatformIO",
+			"task": "Monitor (m5stack-core2)",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Monitor (m5stack-core2)"
+		},
+		{
+			"type": "PlatformIO",
+			"task": "Devices",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Devices"
+		}
+	]
+}

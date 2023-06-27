@@ -1,0 +1,24 @@
+
+void sendToServer(uint8_t *tcpSendBuffer, uint8_t cmdTCP, uint8_t bytesToSend);
+void registerInHoa();
+void getCurrentTime();
+void sendCurrentState(ushort recipientAddress);
+void sendWriteRegistersAck(uint8_t numRegisters, uint8_t *receivedBuffer);
+void sendConfiguration(uint8_t *receivedBuffer);
+void resetShrtGapoAddress();
+void sendGetGapoShortAddres();
+void processNodeInTable(uint8_t *receivedBuffer);
+void sendGetGaPoData();
+void processGapoData(uint8_t *receivedBuffer);
+void proceedAnswer(uint8_t *receivedBuffer);
+void getDataFromTcp();
+void connectToTCPServer();
+void showIpAddressAndSSID();
+void connectToWiFi();
+void reconnectTcpSocket();
+void checkWiFiConnection();
+void waitForServerAnswerTimeOut();
+void setCheckWiFiConnection();
+void setFlagReqGaPoData();
+void attachTcpTickers();
+void netService();
