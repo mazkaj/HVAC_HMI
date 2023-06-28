@@ -1,3 +1,16 @@
+typedef struct
+{
+    String ssid;
+    int8_t rssi;
+    uint8_t tcpStatus;
+    IPAddress ipAddress;
+    uint8_t tcpIndexInConnectionTable;
+} wifiState_t;
+
+typedef enum {
+    TCPStatusWiFiConnectedEnum = 0x01,
+    TCPStatusTcpConnectedEnum = 0x02
+}tcpStatusEnum_t;
 
 void sendToServer(uint8_t *tcpSendBuffer, uint8_t cmdTCP, uint8_t bytesToSend);
 void registerInHoa();
@@ -12,6 +25,7 @@ void sendGetGaPoData();
 void processGapoData(uint8_t *receivedBuffer);
 void proceedAnswer(uint8_t *receivedBuffer);
 void getDataFromTcp();
+void getWiFiState(wifiState_t *_wifiState);
 void connectToTCPServer();
 void showIpAddressAndSSID();
 void connectToWiFi();

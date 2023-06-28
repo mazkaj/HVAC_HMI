@@ -79,6 +79,18 @@ void showWiFiStrength(int8_t lastRSSIValue){
   }
 }
 
+void redrawWiFiIcon(uint8_t wifiIconType){
+  gfx.fillRect(287, 207, 32, 32, DISP_BACK_COLOR);
+  if (wifiIconType == 1)
+    gfx.drawPng(wifiMax, ~0u, 287, 207);
+  else if (wifiIconType == 2)
+    gfx.drawPng(wifi75, ~0u, 287, 207);
+  else if (wifiIconType == 3)
+    gfx.drawPng(wifi25, ~0u, 287, 207);
+  else
+    gfx.drawPng(wifiMin, ~0u, 287, 207);
+}
+
 void showConnectingInfo(){
   gfx.fillRect(287, 207, 32, 32, DISP_BACK_COLOR);
   gfx.drawPng(searchWiFi32, ~0u, 287, 207);
@@ -95,32 +107,37 @@ void showNodeName(){
   gfx.print(_nodeName);
 }
 
-void redrawWiFiIcon(uint8_t wifiIconType){
-  gfx.fillRect(287, 207, 32, 32, DISP_BACK_COLOR);
-  if (wifiIconType == 1)
-    gfx.drawPng(wifiMax, ~0u, 287, 207);
-  else if (wifiIconType == 2)
-    gfx.drawPng(wifi75, ~0u, 287, 207);
-  else if (wifiIconType == 3)
-    gfx.drawPng(wifi25, ~0u, 287, 207);
-  else
-    gfx.drawPng(wifiMin, ~0u, 287, 207);
-}
-
-void showIpAddressAndSSID(uint8_t tcpIndexInConnectionTable){
+void showIpAddressAndSSID(wifiState_t wifiState){
   gfx.setFont(WIFI_STATUS_FONT);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
-  IPAddress ipAddress = WiFi.localIP();
   char buff[19];
-  if (tcpIndexInConnectionTable < TCP_CONNECTION_SIZE)
-    sprintf(buff, "%d.%d.%d.%d:%d", ipAddress[0], ipAddress[1], ipAddress[2], ipAddress[3], tcpIndexInConnectionTable);
+  if (wifiState.tcpIndexInConnectionTable < TCP_CONNECTION_SIZE)
+    sprintf(buff, "%d.%d.%d.%d:%d", wifiState.ipAddress[0], 
+                                    wifiState.ipAddress[1], 
+                                    wifiState.ipAddress[2], 
+                                    wifiState.ipAddress[3], 
+                                    wifiState.tcpIndexInConnectionTable);
   else
-    sprintf(buff, "%d.%d.%d.%d:--", ipAddress[0], ipAddress[1], ipAddress[2], ipAddress[3]);
+    sprintf(buff, "%d.%d.%d.%d:??", wifiState.ipAddress[0], 
+                                    wifiState.ipAddress[1], 
+                                    wifiState.ipAddress[2], 
+                                    wifiState.ipAddress[3]);
   gfx.setCursor(145, 223);
   gfx.printf("%18s", buff);
 
   gfx.setCursor(177, 210);
-  gfx.printf("%14s", WiFi.SSID());
+  gfx.printf("%14s", wifiState.ssid);
+}
+
+void showWiFiState(wifiState_t wifiState){
+  showIpAddressAndSSID(wifiState);
+  showWiFiStrength(wifiState.rssi);
+}
+
+void updateWiFiState(){
+  wifiState_t wifiState;
+  getWiFiState(&wifiState);  
+  showWiFiState(wifiState);
 }
 
 void refreshTime(){
@@ -208,6 +225,7 @@ void loop() {
 
   refreshTime();
   netService();
+  updateWiFiState();
   checkBatCondition();
 
   if (_getCurrentTimeFlag == TIMEFLAG_REQUIREPANTIME)

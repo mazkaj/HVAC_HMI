@@ -153,6 +153,18 @@ void getDataFromTcp(){
   }
 }
 
+void getWiFiState(wifiState_t *wifiState){
+  wifiState->ssid = WiFi.SSID();
+  wifiState->rssi = WiFi.RSSI();
+  wifiState->ipAddress = WiFi.localIP();
+  wifiState->tcpIndexInConnectionTable = _tcpIndexInConnectionTable;
+  wifiState->tcpStatus = 0;
+  if (WiFi.isConnected()){
+    wifiState->tcpStatus |= TCPStatusWiFiConnectedEnum;
+  if (_clientTCP.connected())
+    wifiState->tcpStatus |= TCPStatusTcpConnectedEnum;
+}
+
 void connectToTCPServer(){
   if (!_clientTCP.connected()){
     gfx.drawPng(cross, ~0u, 305, 223);
