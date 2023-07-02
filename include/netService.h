@@ -1,5 +1,19 @@
+#ifndef __NETSERVICE_H
+	#define	__NETSERVICE_H
+
+#define WIFI_IDLE               0
+#define WIFI_STARTCHECKCONNECTION    1
+#define WIFI_CONNECTING         2
+#define WIFI_GETNEXTCONNECTION  3
+#define WIFI_CONNECTED          4
+#define WIFI_TCPCONNECTING      5
+#define WIFI_TCPCONNECTED       6
+#define WIFI_TCPREGISTERED      7
+#define WIFI_TCPRECONNECT       8
+
 typedef struct
 {
+    uint8_t connectionState;
     String ssid;
     int8_t rssi;
     uint8_t tcpStatus;
@@ -26,6 +40,8 @@ void processGapoData(uint8_t *receivedBuffer);
 void proceedAnswer(uint8_t *receivedBuffer);
 void getDataFromTcp();
 void getWiFiState(wifiState_t *_wifiState);
+bool isTCPConneted();
+bool isWiFiStatusConnected();
 void connectToTCPServer();
 void showIpAddressAndSSID();
 void connectToWiFi();
@@ -35,4 +51,6 @@ void waitForServerAnswerTimeOut();
 void setCheckWiFiConnection();
 void setFlagReqGaPoData();
 void attachTcpTickers();
+void attachNetTicker();
 void netService();
+#endif

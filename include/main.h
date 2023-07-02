@@ -8,10 +8,12 @@
 
 #include "myMiWiProtocol.h"
 #include <graphics.h>
+#include "netService.h"
 
 #define DISP_BACK_COLOR     TFT_WHITE
 #define DISP_TEXT_COLOR     TFT_BLACK
-#define TIMER_WIFI_CHECK    30      //seconds
+
+#define TIMER_WIFI_CHECK    1000      //ms
 #define TIMER_PAN_UPDATE   800      //ms
 #define TIMEOUT_TCP_ANSWER   100    //ms
 
@@ -55,6 +57,7 @@ void hideGaPoData();
 void showWiFiStrength(int8_t lastRSSIValue);
 void updateWiFiState();
 void showIpAddressAndSSID(wifiState_t wifiState);
+void showTcpConnectionState(wifiState_t wifiState);
 void showWiFiState(wifiState_t wifiState);
 void setFlagCurrentState(uint8_t flagToSet);
 void clearFlagCurrentState(uint8_t flagToClear);

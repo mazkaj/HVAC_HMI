@@ -16,7 +16,7 @@
 #include "wifi25.h"
 #include "wifi75.h"
 #include "wifiMax.h"
-#include "searchWiFi32.h"
+#include "searchWiFibw32.h"   
 #include "plug16.h"
 #include "cross.h"
 #include "sunny32.h"

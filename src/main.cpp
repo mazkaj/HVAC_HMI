@@ -62,13 +62,13 @@ void showWiFiStrength(int8_t lastRSSIValue){
   gfx.setFont(&fonts::efontCN_16_b);
   gfx.setTextColor(DISP_TEXT_COLOR, TFT_WHITE);
   gfx.setCursor(290, 192);
-  gfx.printf("%d%%", lastRSSIValue);
+  gfx.printf("%d%%", 100+lastRSSIValue);
 
-  if (lastRSSIValue > 60)
+  if (lastRSSIValue > -40)
     currentWiFiIconType = 1;
-  else if (lastRSSIValue > 45)
+  else if (lastRSSIValue > -55)
     currentWiFiIconType = 2;
-  else if (lastRSSIValue > 30)
+  else if (lastRSSIValue > -70)
     currentWiFiIconType = 3;
   else
     currentWiFiIconType = 4;
@@ -91,9 +91,9 @@ void redrawWiFiIcon(uint8_t wifiIconType){
     gfx.drawPng(wifiMin, ~0u, 287, 207);
 }
 
-void showConnectingInfo(){
+void showConnectingInfo(wifiState_t wifiState){
   gfx.fillRect(287, 207, 32, 32, DISP_BACK_COLOR);
-  gfx.drawPng(searchWiFi32, ~0u, 287, 207);
+  gfx.drawPng(searchWiFibw32, ~0u, 287, 207);
   gfx.setFont(WIFI_STATUS_FONT);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   gfx.setCursor(170, 223);
@@ -108,6 +108,8 @@ void showNodeName(){
 }
 
 void showIpAddressAndSSID(wifiState_t wifiState){
+  if (wifiState.tcpStatus == 0)
+    return;
   gfx.setFont(WIFI_STATUS_FONT);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   char buff[19];
@@ -125,13 +127,42 @@ void showIpAddressAndSSID(wifiState_t wifiState){
   gfx.setCursor(145, 223);
   gfx.printf("%18s", buff);
 
-  gfx.setCursor(177, 210);
+  gfx.setCursor(175, 208);
   gfx.printf("%14s", wifiState.ssid);
 }
 
+void showTcpConnectionState(wifiState_t wifiState){
+  static bool tcpConnected = false;
+  if (tcpConnected != isTCPConneted()){
+    tcpConnected = isTCPConneted();
+    gfx.fillRect(305, 223, 16, 16, DISP_BACK_COLOR);
+
+    if (tcpConnected)
+      gfx.drawPng(plug16, ~0u, 305, 223);
+    else
+      gfx.drawPng(cross, ~0u, 305, 223);
+  }
+}
+
 void showWiFiState(wifiState_t wifiState){
-  showIpAddressAndSSID(wifiState);
-  showWiFiStrength(wifiState.rssi);
+  static uint8_t lastConnectionState = 0xFF;
+  if (lastConnectionState == wifiState.connectionState)
+    return;
+  lastConnectionState = wifiState.connectionState;
+  if (wifiState.connectionState == WIFI_GETNEXTCONNECTION ||
+      wifiState.connectionState == WIFI_CONNECTING ||
+      wifiState.connectionState == WIFI_STARTCHECKCONNECTION)
+    showConnectingInfo(wifiState);
+
+  if (wifiState.connectionState == WIFI_CONNECTED ||
+      wifiState.connectionState == WIFI_TCPCONNECTING ||
+      wifiState.connectionState == WIFI_TCPCONNECTED ||
+      wifiState.connectionState == WIFI_TCPREGISTERED){
+    showIpAddressAndSSID(wifiState);
+    showWiFiStrength(wifiState.rssi);
+    showNodeName();
+    showTcpConnectionState(wifiState);
+  }
 }
 
 void updateWiFiState(){
@@ -217,6 +248,8 @@ void setup(){
   initButtons();
   setFlagCurrentState(PAN_TCP_RSWITCH_AUTO);
   showStatusIcons();
+
+  attachNetTicker();
   attachTcpTickers();
 //  readConfiguration();
 }
