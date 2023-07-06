@@ -145,10 +145,11 @@ void showTcpConnectionState(wifiState_t wifiState){
 }
 
 void showWiFiState(wifiState_t wifiState){
-  static uint8_t lastConnectionState = 0xFF;
-  if (lastConnectionState == wifiState.connectionState)
+  static uint8_t lastTcpCheckCounter = 0xFF;
+  if (lastTcpCheckCounter == wifiState.tcpCheckCounter)
     return;
-  lastConnectionState = wifiState.connectionState;
+
+  lastTcpCheckCounter = wifiState.tcpCheckCounter;
   if (wifiState.connectionState == WIFI_GETNEXTCONNECTION ||
       wifiState.connectionState == WIFI_CONNECTING ||
       wifiState.connectionState == WIFI_STARTCHECKCONNECTION)
@@ -243,11 +244,15 @@ void setup(){
   gfx.begin();
   M5.Rtc.begin();
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect(); 
   gfx.clear(DISP_BACK_COLOR);
   initButtons();
   setFlagCurrentState(PAN_TCP_RSWITCH_AUTO);
   showStatusIcons();
+
+  netNodeParameter_t netNodeParam;
+  netNodeParam.nodeAddrType = ADDR_HVACHMI;
+  netNodeParam.tcpNodeType = tcpNodeTypeHVACDispEnum;
+  initNodeNetParameters(netNodeParam);
 
   attachNetTicker();
   attachTcpTickers();

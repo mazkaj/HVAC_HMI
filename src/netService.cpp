@@ -20,6 +20,7 @@ uint8_t _waitingForTcpServerAnswer = 0;
 int8_t _lastRSSIValue = 0;
 uint8_t _noAnswerCounter = 0;
 uint8_t _tcpPacketNumber = 0U;
+uint8_t _checkWiFi = 0;
 uint8_t _checkWiFiConnectionState = WIFI_STARTCHECKCONNECTION;
 uint8_t _wifiConnectionCheckTimer = 1;
 uint8_t _wifiCheckCounter = 0;
@@ -27,13 +28,19 @@ uint8_t _tcpClientPANUpdateTimer = 1;
 String _ssidFailedConnection[5];
 uint8_t _ssidFailedConnectionIndex = 0;
 
+netNodeParameter_t _netNodeParam;
+
+void initNodeNetParameters(netNodeParameter_t netNodeParam){
+  _netNodeParam = netNodeParam;
+}
+
 void sendToServer(uint8_t *tcpSendBuffer, uint8_t cmdTCP, uint8_t bytesToSend){
   //fill header
   if (_waitingForTcpServerAnswer > 0)
     return; //wait for previous transmition
 
   IPAddress ipAddress = WiFi.localIP();
-  tcpSendBuffer[eTcpPacketPosAddressType] = ADDR_RSWI;
+  tcpSendBuffer[eTcpPacketPosAddressType] = _netNodeParam.nodeAddrType;
   tcpSendBuffer[eTcpPacketPosSenderAddr0] = ipAddress[3];
   tcpSendBuffer[eTcpPacketPosSenderAddr1] = (ipAddress[2] | 0x80);
   tcpSendBuffer[eTcpPacketPosPayLoadLength] = bytesToSend - TCP_HEADER_LENGTH;
@@ -51,7 +58,7 @@ void registerInHoa(){
   uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 7];
   tcpSendBuffer[eTcpPacketPosRecipientAddr0] = 0;
   tcpSendBuffer[eTcpPacketPosRecipientAddr1] = 0;
-  tcpSendBuffer[eTcpPacketPosStartPayLoad] = tcpNodeTypeHVACDispEnum;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad] = _netNodeParam.tcpNodeType;
   String macAsString = WiFi.macAddress();
   char macChars[18];
   macAsString.toCharArray(macChars, 18);
@@ -110,9 +117,10 @@ void proceedAnswer(uint8_t* receivedBuffer){
   Serial.printf("Received: %x, %d %x \r\n", receivedBuffer[eTcpPacketPosMiWiCommand], receivedBuffer[eTcpPacketPosStartPayLoad], receivedBuffer[eTcpPacketPosStartPayLoad]);
   switch (receivedBuffer[eTcpPacketPosMiWiCommand]){
     case PAN_TCP_REGISTERNODE_A:
+      _tcpIndexInConnectionTable = 0xFF;
       if (receivedBuffer[eTcpPacketPosStartPayLoad] >= TCP_CONNECTION_SIZE){
         Serial.printf("PAN_TCP_REGISTERNODE_A: receivedBuffer[eTcpSendPacketPayLoad + 1] > TCP_CONNECTION_SIZE\n");
-        reconnectTcpSocket();
+      _checkWiFiConnectionState = WIFI_STARTCHECKCONNECTION;
         break;
       }
       Serial.printf("PAN_TCP_REGISTERNODE_A as node #: %d\n", receivedBuffer[eTcpPacketPosStartPayLoad]);
@@ -165,6 +173,7 @@ void getWiFiState(wifiState_t *wifiState){
   wifiState->ipAddress = WiFi.localIP();
   wifiState->tcpIndexInConnectionTable = _tcpIndexInConnectionTable;
   wifiState->tcpStatus = 0;
+  wifiState->tcpCheckCounter = _wifiCheckCounter;
   if (WiFi.isConnected())
     wifiState->tcpStatus |= TCPStatusWiFiConnectedEnum;
   if (_clientTCP.connected())
@@ -183,27 +192,31 @@ void connectToTCPServer(){
   if (!_clientTCP.connected()){
     _clientTCP.connect(_ipAddressHoA, 28848);
   }
-  if (_clientTCP.connected() && _tcpIndexInConnectionTable >= TCP_CONNECTION_SIZE){
-      registerInHoa();
+}
+
+void searchAvailableWiFi(){
+  WiFi.disconnect();
+  delay(100);
+  Serial.printf("Scanning WiFi ...");
+  WiFi.scanNetworks(true, true);
+}
+
+bool isRegisteredAsFailed(uint8_t iNet){
+  for (int i = 0; i < _ssidFailedConnectionIndex; i++){
+    if (WiFi.SSID(iNet) == _ssidFailedConnection[i]){
+      Serial.printf("Skip: %s\n", WiFi.SSID(iNet).c_str());
+      return true;
+    }
   }
+  return false;
 }
 
 void connectToWiFi(){
-  WiFi.disconnect();
-  int numFoundNets = WiFi.scanNetworks();
-  if (numFoundNets == 0){
-    Serial.printf("No WiFi found");
-    return;
-  }
   int maxRSSI = -100;
   String netSSID;
-  for (int iNet = 0; iNet < numFoundNets; iNet ++){
-    for (int i = 0; i < _ssidFailedConnectionIndex; i++){
-      if (WiFi.SSID(iNet) == _ssidFailedConnection[i]){
-        Serial.printf("Skip: %s\n", WiFi.SSID(iNet).c_str());
-        continue;
-      }
-    }
+  for (int iNet = 0; iNet < WiFi.scanComplete(); iNet ++){
+    if (isRegisteredAsFailed(iNet))
+      continue;
     if (WiFi.RSSI(iNet) > maxRSSI){
       maxRSSI = WiFi.RSSI(iNet);
       netSSID = WiFi.SSID(iNet);
@@ -223,49 +236,69 @@ void connectToWiFi(){
 void reconnectTcpSocket(){
   _clientTCP.stop();
   _checkWiFiConnectionState = WIFI_TCPRECONNECT;
-  checkWiFiConnection();
 }
 
 void checkWiFiConnection(){
 
   if (_wifiCheckCounter > 30 || _checkWiFiConnectionState == WIFI_TCPRECONNECT){
     _checkWiFiConnectionState = WIFI_STARTCHECKCONNECTION;
-    _wifiCheckCounter = 0;
-    _ssidFailedConnectionIndex = 0;
     Serial.printf("Restart wifi connecting\n");
   }
   wl_status_t wifiStatus;
+  int16_t wifiScanComplete;
   switch (_checkWiFiConnectionState){
     case WIFI_STARTCHECKCONNECTION:
+      _wifiCheckCounter = 0;
+      _ssidFailedConnectionIndex = 0;
       if (!WiFi.isConnected() || _lastRSSIValue < 20){
-        _checkWiFiConnectionState = WIFI_CONNECTING;
-        connectToWiFi();
+        _checkWiFiConnectionState = WIFI_SEARCHING;
+        WiFi.scanDelete();
+        searchAvailableWiFi();
       }else{
         _checkWiFiConnectionState = WIFI_CONNECTED;
       }
     break;
-    case WIFI_CONNECTING:
-      wifiStatus = WiFi.status();
-      Serial.printf("Connection status: %d \n", wifiStatus);
-      if (wifiStatus == WL_CONNECTED){
-        _checkWiFiConnectionState = WIFI_CONNECTED;
-      }else if (wifiStatus == WL_CONNECT_FAILED || wifiStatus == WL_NO_SSID_AVAIL || wifiStatus == WL_CONNECTION_LOST){
-        _ssidFailedConnectionIndex++;
-        _checkWiFiConnectionState = WIFI_GETNEXTCONNECTION;
+    case WIFI_SEARCHING:
+      wifiScanComplete = WiFi.scanComplete();
+      if (wifiScanComplete == WIFI_SCAN_RUNNING){
+        Serial.printf(".");
+        break;
       }
-    break;
+      if (wifiScanComplete == WIFI_SCAN_FAILED){
+        Serial.printf("WiFi scan failed\n");
+        _checkWiFiConnectionState = WIFI_STARTCHECKCONNECTION;
+        break;
+      }
+      if (wifiScanComplete == 0){
+        Serial.printf("No WiFi found\n");
+        _checkWiFiConnectionState = WIFI_STARTCHECKCONNECTION;
+        break;
+      }
+      Serial.printf(" (%d) WiFi found\n", wifiScanComplete);
+      _checkWiFiConnectionState = WIFI_GETNEXTCONNECTION;
+      break;
     case WIFI_GETNEXTCONNECTION:
         if (_ssidFailedConnectionIndex < sizeof(_ssidFailedConnection)){
+          _checkWiFiConnectionState = WIFI_CONNECTING;
           connectToWiFi();
         }else{
           _ssidFailedConnectionIndex = 0;
           _checkWiFiConnectionState = WIFI_STARTCHECKCONNECTION;
         }
     break;
+    case WIFI_CONNECTING:
+      wifiStatus = WiFi.status();
+      Serial.printf("wifi connecting status %d\n", wifiStatus);
+      if (wifiStatus == WL_CONNECTED){
+        _checkWiFiConnectionState = WIFI_CONNECTED;
+      }else if (wifiStatus == WL_CONNECT_FAILED || wifiStatus == WL_NO_SSID_AVAIL || wifiStatus == WL_CONNECTION_LOST || wifiStatus == WL_DISCONNECTED){
+        _ssidFailedConnectionIndex++;
+        _checkWiFiConnectionState = WIFI_GETNEXTCONNECTION;
+      }
+    break;
     case WIFI_CONNECTED:
       if (_clientTCP.connected()){
         _checkWiFiConnectionState = WIFI_TCPCONNECTED;
-        _wifiCheckCounter = 0;
       }
       else{
           _checkWiFiConnectionState = WIFI_TCPCONNECTING;
@@ -275,12 +308,16 @@ void checkWiFiConnection(){
     case WIFI_TCPCONNECTING:
         if (_clientTCP.connected()){
           _checkWiFiConnectionState = WIFI_TCPCONNECTED;
-          _wifiCheckCounter = 0;
         }
         else{
-          connectToTCPServer();
+          _checkWiFiConnectionState = WIFI_TCPRECONNECT;
         }
-
+    break;
+    case WIFI_TCPCONNECTED:
+        _wifiCheckCounter = 0;
+      if (_clientTCP.connected() && _tcpIndexInConnectionTable >= TCP_CONNECTION_SIZE){
+        registerInHoa();
+      }
     break;
   }
 
@@ -301,9 +338,8 @@ void refreshCurrentState(){
 }
 
 void setCheckWiFiConnection(){
-  if (_checkWiFiConnectionState != WIFI_TCPCONNECTED){
-    _wifiCheckCounter++;
-  }
+  _checkWiFi = 1;
+  _wifiCheckCounter++;
 }
 
 void attachTcpTickers(){
@@ -316,10 +352,13 @@ void attachNetTicker(){
 
 void netService(){
 
-  checkWiFiConnection();
+  if (_checkWiFi){
+    checkWiFiConnection();
+    _checkWiFi = 0;
+  }
   getDataFromTcp();
 
-  if (_tcpClientPANUpdateTimer > 0)
+  if (_tcpClientPANUpdateTimer > 0 && _checkWiFiConnectionState == WIFI_TCPREGISTERED)
   {
     _tcpClientPANUpdateTimer = 0;
     sendCurrentState(0);

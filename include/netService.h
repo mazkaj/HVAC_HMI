@@ -3,13 +3,14 @@
 
 #define WIFI_IDLE               0
 #define WIFI_STARTCHECKCONNECTION    1
-#define WIFI_CONNECTING         2
-#define WIFI_GETNEXTCONNECTION  3
-#define WIFI_CONNECTED          4
-#define WIFI_TCPCONNECTING      5
-#define WIFI_TCPCONNECTED       6
-#define WIFI_TCPREGISTERED      7
-#define WIFI_TCPRECONNECT       8
+#define WIFI_SEARCHING          2
+#define WIFI_CONNECTING         3
+#define WIFI_GETNEXTCONNECTION  4
+#define WIFI_CONNECTED          5
+#define WIFI_TCPCONNECTING      6
+#define WIFI_TCPCONNECTED       7
+#define WIFI_TCPREGISTERED      8
+#define WIFI_TCPRECONNECT       9
 
 typedef struct
 {
@@ -19,13 +20,21 @@ typedef struct
     uint8_t tcpStatus;
     IPAddress ipAddress;
     uint8_t tcpIndexInConnectionTable;
+    uint8_t tcpCheckCounter;
 } wifiState_t;
+
+typedef struct
+{
+    uint8_t nodeAddrType;
+    tcpNodeTypeEnum_t tcpNodeType;
+} netNodeParameter_t;
 
 typedef enum {
     TCPStatusWiFiConnectedEnum = 0x01,
     TCPStatusTcpConnectedEnum = 0x02
 }tcpStatusEnum_t;
 
+void initNodeNetParameters(netNodeParameter_t netNodeParam);
 void sendToServer(uint8_t *tcpSendBuffer, uint8_t cmdTCP, uint8_t bytesToSend);
 void registerInHoa();
 void getCurrentTime();
@@ -44,6 +53,8 @@ bool isTCPConneted();
 bool isWiFiStatusConnected();
 void connectToTCPServer();
 void showIpAddressAndSSID();
+void searchAvailableWiFi();
+bool isRegisteredAsFailed(uint8_t iNet);
 void connectToWiFi();
 void reconnectTcpSocket();
 void checkWiFiConnection();
