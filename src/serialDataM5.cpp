@@ -2,17 +2,16 @@
 
 #include "main.h"
 #include "serialDataM5.h"
-#include "hvac.h"
 
 extern currentState_t _currentState;
 
 HardwareSerial uartToM5Stack(2);
 
 void initSerialDataM5Stack(){
-    uartToM5Stack.begin(115200, SERIAL_8N1, 16, 17);
+    uartToM5Stack.begin(115200, SERIAL_8N1, 13, 14);
 }
 
-void processDataFromHMI(){
+void processDataFromHVAC(){
     uint8_t receivedBuffer[RS_BUFFER_SIZE];
     size_t charsAvailable = uartToM5Stack.available();
     if (charsAvailable > 0){
@@ -41,17 +40,16 @@ void analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
         
         switch (posInPacket){
             case 0:
-                _currentState.tcpIndexInConnTable = receivedBuffer[iChar];
             break;
             case 1:
-                cmdToExec = receivedBuffer[iChar];
+                _currentState.dacOutVoltage = receivedBuffer[iChar];
+                _currentState.dacOutVoltage <<= 8;
                 break;
             case 2:
-                cmdParameter = receivedBuffer[iChar];
-                cmdParameter <<= 8;
+                _currentState.dacOutVoltage |= receivedBuffer[iChar];
                 break;
             case 3:
-                cmdParameter |= receivedBuffer[iChar];
+                _currentState.currentInpOutState = receivedBuffer[iChar];
                 break;
         }        
         posInPacket++;
@@ -59,28 +57,37 @@ void analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
     }
     if (iChar == receivedBytes) //no ETX
         return;
-
-    switch (cmdToExec){
-        case HVAC_CMD_SETVOLTAGE:
-            setDACVoltage(cmdParameter);
-            break;
-        case HVAC_CMD_COOL_HEAT:
-            setHCState(cmdParameter);
-            break;
-        case HVAC_CMD_GETCURRENTDATA:
-            sendHVACStateToHMI();
-            break;
-    }
 }
 
-void sendHVACStateToHMI(){
+void rsSendSetDACVoltage(uint16_t setVoltage){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];
-    updateCurrentInpState();
     rsSendBuffer[0] = STX;
     rsSendBuffer[1] = _currentState.tcpIndexInConnTable;
-    rsSendBuffer[2] = (byte)(_currentState.dacOutVoltage >> 8);
-    rsSendBuffer[3] = (byte)(_currentState.dacOutVoltage);
-    rsSendBuffer[4] = _currentState.currentInpOutState;
+    rsSendBuffer[2] = HVAC_CMD_SETVOLTAGE;
+    rsSendBuffer[3] = (byte)(setVoltage >> 8);
+    rsSendBuffer[4] = (byte)(setVoltage);
     rsSendBuffer[5] = ETX;
+    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+}
 
+void rsSendSetHCState(uint8_t hcState){
+    uint8_t rsSendBuffer[RS_BUFFER_SIZE];
+    rsSendBuffer[0] = STX;
+    rsSendBuffer[1] = _currentState.tcpIndexInConnTable;
+    rsSendBuffer[2] = HVAC_CMD_COOL_HEAT;
+    rsSendBuffer[3] = 0;
+    rsSendBuffer[4] = hcState;
+    rsSendBuffer[5] = ETX;
+    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+}
+
+void rsSendGetCurrentState(){
+    uint8_t rsSendBuffer[RS_BUFFER_SIZE];
+    rsSendBuffer[0] = STX;
+    rsSendBuffer[1] = _currentState.tcpIndexInConnTable;
+    rsSendBuffer[2] = HVAC_CMD_GETCURRENTDATA;
+    rsSendBuffer[3] = 0;
+    rsSendBuffer[4] = 0;
+    rsSendBuffer[5] = ETX;
+    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }
