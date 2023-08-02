@@ -2,13 +2,18 @@
 #include <netService.h>
 #include <sdService.h>
 
-currentState_t _currentState;
-netNodeParameter_t _netNodeParam;
-nodeConfig_t _nodeConfig;
+extern currentState_t _currentState;
+extern netNodeParameter_t _netNodeParam;
+extern nodeConfig_t _nodeConfig;
+uint8_t _configuration;
 
 M5GFX gfx;
+Ticker _panTicker;
+
 uint8_t _lastWiFiIconType = 0;
 uint8_t _lastBatLevel = 0;
+uint8_t _lastConnectionState = WIFI_IDLE;
+uint8_t _panClientUpdateFlag = 0;
 uint8_t _getCurrentTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
 int16_t _gapoTempValue;
 
@@ -216,17 +221,8 @@ void updateWiFiState(){
   showWiFiState(wifiState);
 }
 
-
-void setFlagCurrentState(uint8_t flagToSet){
-  _currentState |= flagToSet;
-}
-
-void clearFlagCurrentState(uint8_t flagToClear){
-  _currentState &= ~flagToClear;
-}
-
-bool isFlagCurrentState(uint8_t flagToCheck){
-  return (_currentState & flagToCheck);
+void refreshCurrentState(){
+  _panClientUpdateFlag = 1;
 }
 
 int16_t temperatBMEBytesToInt(uint8_t highByte, uint8_t lowByte){
@@ -251,17 +247,31 @@ void setup(){
   initNetwork();
   initButtons();
   showStatusIcons();
+  readConfiguration();
+  _panTicker.attach_ms(TIMER_PAN_UPDATE, refreshCurrentState);
+
 }
 
 void loop() {
 
-  refreshTime();
-  netService();
-  updateWiFiState();
+  uint8_t receivedBuffer[TCP_BUFFER_SIZE];
+
+  displayTime();
   checkBatCondition();
+
+  netService(receivedBuffer);
+  processTcpDataReq(receivedBuffer);
+  updateWiFiState();
+  processDataFromHVAC();
 
   if (_getCurrentTimeFlag == TIMEFLAG_REQUIREPANTIME)
     getCurrentTime();
+
+    if (_panClientUpdateFlag > 0 && _netNodeParam.wiFiConnectionState == WIFI_TCPREGISTERED)
+  {
+    _panClientUpdateFlag = 0;
+    sendCurrentStateToPAN();
+  }
 
   M5.update();
   if (intensityIncTButton.wasPressed()){

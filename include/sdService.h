@@ -11,6 +11,4 @@ void sdInitialize();
 void readConfiguration();
 uint8_t storeConfigurationToSD(uint8_t *registers);
 void writeConfig(File _confFile, uint8_t confValue);
-void writeTreshold(File _confFile, uint8_t *registers, uint8_t address);
-void writeName(File _confFile, uint8_t *registers, uint8_t address);
 uint8_t putShortToSendBuff(uint8_t *sendBuff, uint16_t shortToPut, uint8_t posInBuff);

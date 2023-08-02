@@ -9,8 +9,10 @@
 
 
 void initSerialDataM5Stack();
-void processDataFromHMI();
+void processDataFromHVAC();
 void analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes);
-void sendHVACStateToHMI();
+void rsSendSetDACVoltage(uint16_t setVoltage);
+void rsSendSetHCState(uint8_t hcState);
+void rsSendGetCurrentState();
 
 #endif //__SERIALDATAM5_H

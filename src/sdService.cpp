@@ -2,8 +2,7 @@
 #include <main.h>
 #include <sdService.h>
 
-extern uint8_t _configuration;
-extern String _nodeName;
+extern nodeConfig_t _nodeConfig;
 
 File _confFile;
 
@@ -37,16 +36,8 @@ void readConfiguration(){
             switch (address)
             {
             case 0:
-                _configuration = valueString.toInt();
-                Serial.printf(" _config = %d \r\n", _configuration);
-                break;
-            case 1:
-                break;
-            case 3:
-                break;
-            case 5:
-                _nodeName = valueString;
-                Serial.print(_nodeName);
+                _nodeConfig.configuration = valueString.toInt();
+                Serial.printf(" config = %d \r\n", _nodeConfig.configuration);
                 break;
 
             default:
@@ -66,7 +57,6 @@ uint8_t storeConfigurationToSD(uint8_t *registers){
     _confFile = SD.open("/registers.txt", FILE_WRITE, true);
     if (_confFile){
         writeConfig(_confFile, registers[eTcpPacketPosStartPayLoad + 2]);
-        writeName(_confFile, registers, eTcpPacketPosStartPayLoad + 7);
         _confFile.close();
         return registers[eTcpPacketPosStartPayLoad + 1];
     }
@@ -85,16 +75,6 @@ void writeConfig(File _confFile, uint8_t confValue){
             _confFile.print("[ ] ");
     }
     _confFile.println("}");
-}
-
-void writeName(File _confFile, uint8_t *registers, uint8_t address){
-    _confFile.printf("{%03d;Nazwa;", address - eTcpPacketPosStartPayLoad - 2);
-    registers += address;
-    char buff[21];
-    memcpy(buff, registers, 20);
-    buff[20] = 0;
-    _confFile.print(buff);
-    _confFile.println(";}");
 }
 
 uint8_t putShortToSendBuff(uint8_t *sendBuff, uint16_t shortToPut, uint8_t posInBuff){
