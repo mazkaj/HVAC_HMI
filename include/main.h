@@ -9,9 +9,12 @@
 #include "myMiWiProtocol.h"
 #include <graphics.h>
 #include "netService.h"
+#include "hvac.h"
 
 #define DISP_BACK_COLOR     TFT_WHITE
 #define DISP_TEXT_COLOR     TFT_BLACK
+
+#define USE_SDCARD 
 
 #define TIMER_WIFI_CHECK    1000      //ms
 #define TIMER_PAN_UPDATE   800      //ms
@@ -29,6 +32,12 @@
 #define LUX_SWITCH_ON    1
 #define LUX_SWITCH_OFF   2   
 #define LUX_BETWEEN_ON_OFF  3
+
+typedef struct
+{
+  uint8_t configuration;
+  String nodeName;
+} nodeConfig_t;
 
 void initButtons();
 void vibrate();

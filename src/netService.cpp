@@ -1,6 +1,8 @@
 #include <main.h>
 #include <netService.h>
-#include <sdService.h>
+#ifdef USE_SDCARD
+  #include <sdService.h>
+#endif
 
 extern uint8_t _configuration;
 extern String _nodeName;
@@ -143,6 +145,7 @@ void proceedAnswer(uint8_t* receivedBuffer){
       M5.Rtc.SetDate(&currentDate);
       _getCurrentTimeFlag = TIMEFLAG_PANTIMERECEIVED;
       break;
+#ifdef USE_SDCARD
     case PAN_WRITE_REG:
       sendWriteRegistersAck(storeConfigurationToSD(receivedBuffer), receivedBuffer);
       readConfiguration();
@@ -150,6 +153,7 @@ void proceedAnswer(uint8_t* receivedBuffer){
     case PAN_READ_REG:
       sendConfiguration(receivedBuffer);
       break;
+#endif
   }
 }
 

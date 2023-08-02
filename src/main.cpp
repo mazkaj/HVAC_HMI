@@ -2,12 +2,12 @@
 #include <netService.h>
 #include <sdService.h>
 
-uint8_t _configuration = 0;
-String _nodeName;
+currentState_t _currentState;
+netNodeParameter_t _netNodeParam;
+nodeConfig_t _nodeConfig;
 
 M5GFX gfx;
 uint8_t _lastWiFiIconType = 0;
-uint8_t _currentState = 0;
 uint8_t _lastBatLevel = 0;
 uint8_t _getCurrentTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
 int16_t _gapoTempValue;
@@ -57,6 +57,49 @@ void drawManualIcon(){
 void showStatusIcons(){
 }
 
+void displayTime(){
+  RTC_TimeTypeDef currentTime;
+  M5.Rtc.GetTime(&currentTime);
+  gfx.setCursor(200, 15);
+  const lgfx::v1::IFont *defFont = gfx.getFont();
+  gfx.setFont(&data_latin24pt7b);
+  gfx.printf("%2d:%02d", currentTime.Hours, currentTime.Minutes);
+  gfx.setFont(defFont);
+  if (!_currentState.getTimeFlag == TIMEFLAG_WAITFORMIDNIGHT && currentTime.Hours == 4 && currentTime.Minutes == 15)
+    _currentState.getTimeFlag = TIMEFLAG_REQUIREPANTIME;
+  if (_currentState.getTimeFlag  == TIMEFLAG_PANTIMERECEIVED && currentTime.Minutes != 0)
+    _currentState.getTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
+}
+
+void checkBatCondition(){
+  uint8_t batLevel = (uint8_t)M5.Axp.GetBatteryLevel();
+  gfx.setFont(&fonts::efontCN_16_b);
+  gfx.setTextColor(TFT_BLACK, TFT_WHITE);
+  gfx.setCursor(28, 210);
+  gfx.printf("%3d%%", batLevel);
+
+  if (M5.Axp.isCharging())
+    batLevel = 1;
+  else if (batLevel > 70)
+    batLevel = 2;
+  else if (batLevel > 40)
+    batLevel = 3;
+  else
+    batLevel = 4;
+
+  if (batLevel != _lastBatLevel){
+    _lastBatLevel = batLevel;
+    if (batLevel == 1)
+      gfx.drawPng(battery_charge, ~0u, 0, 207);
+    else if (batLevel == 2)
+      gfx.drawPng(battery_full, ~0u, 0, 207);
+    else if (batLevel == 3)
+      gfx.drawPng(battery_half, ~0u, 0, 207);
+    else
+      gfx.drawPng(battery_low, ~0u, 0, 207);
+  }
+}
+
 void showWiFiStrength(int8_t lastRSSIValue){
   uint8_t currentWiFiIconType;
   gfx.setFont(&fonts::efontCN_16_b);
@@ -76,6 +119,7 @@ void showWiFiStrength(int8_t lastRSSIValue){
   if (_lastWiFiIconType != currentWiFiIconType){
     _lastWiFiIconType = currentWiFiIconType;
     redrawWiFiIcon(currentWiFiIconType);
+    _lastConnectionState = WIFI_IDLE;
   }
 }
 
@@ -104,7 +148,7 @@ void showNodeName(){
   gfx.setFont(&fonts::efontCN_16_i);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   gfx.setCursor(35, 223);
-  gfx.print(_nodeName);
+  gfx.print(_nodeConfig.nodeName);
 }
 
 void showIpAddressAndSSID(wifiState_t wifiState){
@@ -132,16 +176,16 @@ void showIpAddressAndSSID(wifiState_t wifiState){
 }
 
 void showTcpConnectionState(wifiState_t wifiState){
-  static bool tcpConnected = false;
-  if (tcpConnected != isTCPConneted()){
-    tcpConnected = isTCPConneted();
-    gfx.fillRect(305, 223, 16, 16, DISP_BACK_COLOR);
+  if (_lastConnectionState == wifiState.connectionState)
+    return;
+  _lastConnectionState = wifiState.connectionState;
+  gfx.fillRect(305, 223, 16, 16, DISP_BACK_COLOR);
 
-    if (tcpConnected)
-      gfx.drawPng(plug16, ~0u, 305, 223);
-    else
-      gfx.drawPng(cross, ~0u, 305, 223);
-  }
+  if (wifiState.connectionState == WIFI_TCPREGISTERED || 
+      wifiState.connectionState == WIFI_TCPCONNECTED)
+    gfx.drawPng(plug16, ~0u, 305, 223);
+  else
+    gfx.drawPng(cross, ~0u, 305, 223);
 }
 
 void showWiFiState(wifiState_t wifiState){
@@ -172,49 +216,6 @@ void updateWiFiState(){
   showWiFiState(wifiState);
 }
 
-void refreshTime(){
-  RTC_TimeTypeDef currentTime;
-  M5.Rtc.GetTime(&currentTime);
-  gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
-  gfx.setCursor(200, 15);
-  const lgfx::v1::IFont *defFont = gfx.getFont();
-  gfx.setFont(&data_latin24pt7b);
-  gfx.printf("%2d:%02d", currentTime.Hours, currentTime.Minutes);
-  gfx.setFont(defFont);
-  if (!_getCurrentTimeFlag  == TIMEFLAG_WAITFORMIDNIGHT && currentTime.Hours == 4 && currentTime.Minutes == 15)
-    _getCurrentTimeFlag = TIMEFLAG_REQUIREPANTIME;
-  if (_getCurrentTimeFlag  == TIMEFLAG_PANTIMERECEIVED && currentTime.Minutes != 0)
-    _getCurrentTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
-}
-
-void checkBatCondition(){
-  uint8_t batLevel = (uint8_t)M5.Axp.GetBatteryLevel();
-  gfx.setFont(&fonts::efontCN_16_b);
-  gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
-  gfx.setCursor(28, 210);
-  gfx.printf("%3d%%", batLevel);
-
-  if (M5.Axp.isCharging())
-    batLevel = 1;
-  else if (batLevel > 70)
-    batLevel = 2;
-  else if (batLevel > 40)
-    batLevel = 3;
-  else
-    batLevel = 4;
-
-  if (batLevel != _lastBatLevel){
-    _lastBatLevel = batLevel;
-    if (batLevel == 1)
-      gfx.drawPng(battery_charge, ~0u, 0, 207);
-    else if (batLevel == 2)
-      gfx.drawPng(battery_full, ~0u, 0, 207);
-    else if (batLevel == 3)
-      gfx.drawPng(battery_half, ~0u, 0, 207);
-    else
-      gfx.drawPng(battery_low, ~0u, 0, 207);
-  }
-}
 
 void setFlagCurrentState(uint8_t flagToSet){
   _currentState |= flagToSet;
@@ -245,18 +246,11 @@ void setup(){
   M5.Rtc.begin();
   WiFi.mode(WIFI_STA);
   gfx.clear(DISP_BACK_COLOR);
+  _netNodeParam.nodeAddrType = ADDR_HVACHMI;
+  _netNodeParam.tcpNodeType = tcpNodeTypeHVACDispEnum;
+  initNetwork();
   initButtons();
-  setFlagCurrentState(PAN_TCP_RSWITCH_AUTO);
   showStatusIcons();
-
-  netNodeParameter_t netNodeParam;
-  netNodeParam.nodeAddrType = ADDR_HVACHMI;
-  netNodeParam.tcpNodeType = tcpNodeTypeHVACDispEnum;
-  initNodeNetParameters(netNodeParam);
-
-  attachNetTicker();
-  attachTcpTickers();
-//  readConfiguration();
 }
 
 void loop() {
