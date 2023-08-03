@@ -21,6 +21,7 @@ void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.currentInpOutState;
     sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
     Serial.printf("sendCurrentState to %02X %02X\n", recipientAddress0, recipientAddress1);
+    _currentState.validDataHVAC = DATAHVAC_VALID;
 }
 
 void processTcpDataReq(uint8_t *receivedBuffer){
@@ -42,11 +43,11 @@ void processTcpDataReq(uint8_t *receivedBuffer){
       setVoltage <<= 8;
       setVoltage |= receivedBuffer[eTcpPacketPosStartPayLoad + 3];
       rsSendSetDACVoltage(setVoltage);
-      sendCurrentState(receivedBuffer[eTcpPacketPosSenderAddr0], receivedBuffer[eTcpPacketPosSenderAddr1]);
+      _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
     case HVAC_CMD_COOL_HEAT:
       rsSendSetHCState(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
-      sendCurrentState(receivedBuffer[eTcpPacketPosSenderAddr0], receivedBuffer[eTcpPacketPosSenderAddr1]);
+      _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
   }
 }

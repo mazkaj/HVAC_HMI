@@ -25,6 +25,9 @@
 #define TIMEFLAG_REQUIREPANTIME     1
 #define TIMEFLAG_PANTIMERECEIVED    2
 
+#define DATAHVAC_VALID             0
+#define DATAHVAC_TCPREQ            1
+
 #define WIFI_STATUS_FONT    &fonts::efontCN_16_b
 
 typedef struct
@@ -32,6 +35,7 @@ typedef struct
     RTC_TimeTypeDef time;
     RTC_DateTypeDef date;
     uint8_t getTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
+    uint8_t validDataHVAC = DATAHVAC_VALID;
     uint8_t tcpIndexInConnTable;
     uint16_t dacOutVoltage;
     uint8_t currentInpOutState;

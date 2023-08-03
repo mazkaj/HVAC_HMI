@@ -8,12 +8,10 @@ extern nodeConfig_t _nodeConfig;
 uint8_t _configuration;
 
 M5GFX gfx;
-Ticker _panTicker;
 
 uint8_t _lastWiFiIconType = 0;
 uint8_t _lastBatLevel = 0;
 uint8_t _lastConnectionState = WIFI_IDLE;
-uint8_t _panClientUpdateFlag = 0;
 uint8_t _getCurrentTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
 int16_t _gapoTempValue;
 
@@ -221,10 +219,6 @@ void updateWiFiState(){
   showWiFiState(wifiState);
 }
 
-void refreshCurrentState(){
-  _panClientUpdateFlag = 1;
-}
-
 int16_t temperatBMEBytesToInt(uint8_t highByte, uint8_t lowByte){
 	int16_t outTemperature = highByte;
 	outTemperature <<= 8;
@@ -248,8 +242,6 @@ void setup(){
   initButtons();
   showStatusIcons();
   readConfiguration();
-  _panTicker.attach_ms(TIMER_PAN_UPDATE, refreshCurrentState);
-
 }
 
 void loop() {
@@ -262,16 +254,13 @@ void loop() {
   netService(receivedBuffer);
   processTcpDataReq(receivedBuffer);
   updateWiFiState();
-  processDataFromHVAC();
+  if (processDataFromHVAC() > 0){
+    if (_currentState.validDataHVAC == DATAHVAC_TCPREQ)
+      sendCurrentStateToPAN();
+  }
 
   if (_getCurrentTimeFlag == TIMEFLAG_REQUIREPANTIME)
     getCurrentTime();
-
-    if (_panClientUpdateFlag > 0 && _netNodeParam.wiFiConnectionState == WIFI_TCPREGISTERED)
-  {
-    _panClientUpdateFlag = 0;
-    sendCurrentStateToPAN();
-  }
 
   M5.update();
   if (intensityIncTButton.wasPressed()){
