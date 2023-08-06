@@ -10,12 +10,14 @@ uint8_t _configuration;
 
 M5GFX gfx;
 Ticker _reqHVACCurrentStateTicker;
+Ticker _getCurrentTempTicker;
 
 uint8_t _lastWiFiIconType = 0;
 uint8_t _lastBatLevel = 0;
 uint8_t _lastConnectionState = WIFI_IDLE;
 uint8_t _getCurrentTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
 uint8_t  _getCurrentHvacStateFlag = 0;
+uint8_t _getCurrentTempFlag = 0;
 int16_t _gapoTempValue;
 currentState_t _lastCurrentState;
 bool _reDrawImageButtons = false;
@@ -173,7 +175,6 @@ void drawCoolHeatIcon(){
 
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage){
   gfx.setCursor(113, 73);
-  const lgfx::v1::IFont *defFont = gfx.getFont();
   gfx.setFont(&data_latin24pt7b);
   if (dacOutVoltage == 0){
     gfx.setTextColor(TFT_RED, DISP_BACK_COLOR);
@@ -182,6 +183,12 @@ void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage){
     gfx.setTextColor(dispColor, DISP_BACK_COLOR);
     gfx.printf("%3d%%", dacOutVoltage/100);
   }
+}
+
+void displayCurrentTemp(){
+  gfx.setCursor(0, 73);
+  gfx.setFont(&data_latin24pt7b);
+  gfx.printf("%3.1f", _currentState.roomTemperature);
 }
 
 void showStatusIcons(){
@@ -355,6 +362,15 @@ int16_t temperatBMEBytesToInt(uint8_t highByte, uint8_t lowByte){
 	return outTemperature;
 }
 
+void reqHVACCurrentState(){
+  _getCurrentHvacStateFlag = 1;
+}
+
+void getCurrentTemp(){
+  if (_getCurrentTempFlag == 0)
+    _getCurrentTempFlag = 1;
+}
+
 void setup(){
   
   Serial.begin(115200);
@@ -365,6 +381,7 @@ void setup(){
   gfx.clear(DISP_BACK_COLOR);
   _netNodeParam.nodeAddrType = ADDR_HVACHMI;
   _netNodeParam.tcpNodeType = tcpNodeTypeHVACDispEnum;
+  initDS18B20();
   initNetwork();
   initSerialDataM5Stack();
   initButtons();
@@ -373,12 +390,9 @@ void setup(){
   showStatusIcons();
   readConfiguration();
   _reqHVACCurrentStateTicker.attach_ms(TIMER_HVAC_UPDATE, reqHVACCurrentState);
+  _getCurrentTempTicker.attach_ms(TIMER_GET_TEMP, getCurrentTemp);
   _lastCurrentState.currentInpOutState = 0xFF;
   _lastCurrentState.dacOutVoltage = 0xFFFF;
-}
-
-void reqHVACCurrentState(){
-  _getCurrentHvacStateFlag = 1;
 }
 
 void loop() {
@@ -387,6 +401,15 @@ void loop() {
 
   displayTime();
   checkBatCondition();
+  if (_getCurrentTempFlag == 1){
+    _getCurrentTempFlag = 2;
+    dsReqTemperature();
+  }
+
+  if (_getCurrentTempFlag == 2 && dsGetTemperature()){
+    _getCurrentTempFlag = 0;
+    displayCurrentTemp();
+  }
 
   netService(receivedBuffer);
   processTcpDataReq(receivedBuffer);

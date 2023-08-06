@@ -2,10 +2,15 @@
 #include "hvacHmi.h"
 #include "netService.h"
 #include "serialDataM5.h"
+#include "OneWire.h"
+#include "DallasTemperature.h"
 
 currentState_t _currentState;
 nodeConfig_t _nodeConfig;
 
+OneWire _ds(25);
+DallasTemperature _dsSensors(&_ds);
+DeviceAddress _thermometerAddress;
 
 void sendCurrentStateToPAN(){
    sendCurrentState(0, 0);
@@ -50,6 +55,36 @@ void processTcpDataReq(uint8_t *receivedBuffer){
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
   }
+}
+
+void initDS18B20(){
+  _ds.reset_search();
+  if (_ds.search(_thermometerAddress)){
+    Serial.print("Found DS address: ");
+    for (uint8_t i = 0; i < 8; i++){
+      Serial.printf("%02X ", _thermometerAddress[i]);
+    }
+    Serial.println();
+    _dsSensors.setResolution(_thermometerAddress, 12);
+    _dsSensors.setWaitForConversion(false);
+    _dsSensors.begin();
+  }else{
+    Serial.println("No DS18B20 found");
+  }
+}
+
+void dsReqTemperature(){
+  Serial.print("Request temperature\n");
+  _dsSensors.requestTemperatures();
+}
+
+bool dsGetTemperature(){
+  if (_dsSensors.isConversionComplete()){
+    _currentState.roomTemperature = _dsSensors.getTempC(_thermometerAddress);
+    Serial.printf("Temperature = %f\n", _currentState.roomTemperature);
+    return true;
+  }
+  return false;
 }
 
 

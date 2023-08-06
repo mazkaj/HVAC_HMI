@@ -19,6 +19,7 @@
 
 #define TIMER_WIFI_CHECK    1000      //ms
 #define TIMER_HVAC_UPDATE   500      //ms
+#define TIMER_GET_TEMP      1000      //ms
 #define TIMEOUT_TCP_ANSWER   100    //ms
 
 #define TIMEFLAG_WAITFORMIDNIGHT    0
@@ -40,6 +41,7 @@ typedef struct
     uint16_t dacOutVoltage;
     uint8_t currentInpOutState;
     uint8_t initDone;
+    float roomTemperature;
 } currentState_t;
 
 typedef struct
