@@ -16,7 +16,7 @@ uint8_t processDataFromHVAC(){
     size_t charsAvailable = uartToM5Stack.available();
     if (charsAvailable > 0){
         uint8_t receivedBytes = uartToM5Stack.read(receivedBuffer, charsAvailable);
-        Serial.printf("RS received bytes = %d\n", receivedBytes);
+        Serial.printf("RS received bytes = %d : ", receivedBytes);
         return analizeReceivedData(receivedBuffer, receivedBytes);
     }
     return 0;
@@ -32,11 +32,12 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
     if (iChar == receivedBytes)
         return 0;
     uint8_t posInPacket = 0;
-    uint8_t cmdToExec = 0;
-    uint16_t cmdParameter = 0;
     iChar++;
     while (iChar < receivedBytes){
-        if (receivedBuffer[iChar] == ETX)
+
+        Serial.printf("%02X ", receivedBuffer[iChar]);
+
+        if (receivedBuffer[iChar] == ETX && posInPacket == 4)
             break;
         
         switch (posInPacket){
@@ -56,6 +57,8 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
         posInPacket++;
         iChar++;
     }
+    Serial.print("\n");
+
     if (iChar == receivedBytes) //no ETX
         return 0;
     return 1;
@@ -66,9 +69,13 @@ void rsSendSetDACVoltage(uint16_t setVoltage){
     rsSendBuffer[0] = STX;
     rsSendBuffer[1] = _currentState.tcpIndexInConnTable;
     rsSendBuffer[2] = HVAC_CMD_SETVOLTAGE;
-    rsSendBuffer[3] = (byte)(setVoltage >> 8);
-    rsSendBuffer[4] = (byte)(setVoltage);
+    rsSendBuffer[3] = (uint8_t)(setVoltage >> 8);
+    rsSendBuffer[4] = (uint8_t)(setVoltage);
     rsSendBuffer[5] = ETX;
+    Serial.printf("rsSendSetDACVoltage = %d\n", setVoltage);
+    for (int i = 0; i < RS_BUFFER_SIZE; i++)
+        Serial.printf("%02X ", rsSendBuffer[i]);
+    Serial.print("\n");
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }
 

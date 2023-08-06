@@ -1,6 +1,7 @@
 #include <main.h>
 #include <netService.h>
 #include <sdService.h>
+#include "SerialDataM5.h"
 
 extern currentState_t _currentState;
 extern netNodeParameter_t _netNodeParam;
@@ -8,21 +9,28 @@ extern nodeConfig_t _nodeConfig;
 uint8_t _configuration;
 
 M5GFX gfx;
+Ticker _reqHVACCurrentStateTicker;
 
 uint8_t _lastWiFiIconType = 0;
 uint8_t _lastBatLevel = 0;
 uint8_t _lastConnectionState = WIFI_IDLE;
 uint8_t _getCurrentTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
+uint8_t  _getCurrentHvacStateFlag = 0;
 int16_t _gapoTempValue;
+currentState_t _lastCurrentState;
+bool _reDrawImageButtons = false;
 
-Zone lockImageZone = Zone(64,0,64,64);
-Zone autoModeImageZone = Zone(0,0,64,64);
-Zone lightImageZone = Zone(128,0,64,64);
+Zone offImageZone = Zone(240,120,64,64);
+Zone maxImageZone = Zone(10,120,64,64);
+Zone lightImageZone = Zone(244,120,64,64);
 
-Button intensityIncTButton(3, 120, 75, 75, false, "+",  {GREEN, BLACK, WHITE});
-Button intensityDecTButton(80, 120, 75, 75, false, "-",  {GREEN, BLACK, WHITE});
+Button intensityIncTButton(83, 115, 75, 75, false, "+", {GREEN, BLACK, WHITE});
+Button intensityDecTButton(160, 115, 75, 75, false, "-", {GREEN, BLACK, WHITE});
+Button setMaxPowerTButton(3, 115, 75, 75, false, "", {YELLOW, BLACK, WHITE});
+Button setOffPowerTButton(240, 115, 75, 75, false, "", {YELLOW, BLACK, WHITE});
+Button switchHeatCoolTButton(126, 2, 66, 66, false, "", {WHITE, BLACK, BLACK});
 
- void initButtons(){
+void initButtons(){
    intensityIncTButton.setFreeFont(&dodger320pt7b);
    intensityDecTButton.setFreeFont(&dodger320pt7b);
    intensityIncTButton.setTextSize(1);
@@ -30,10 +38,35 @@ Button intensityDecTButton(80, 120, 75, 75, false, "-",  {GREEN, BLACK, WHITE});
    M5.Buttons.draw();
 }
 
+void drawOffImageZone(){
+   //gfx.fillRect(240, 120, 64, 64, TFT_MAGENTA);
+   gfx.drawPng(stopSign48, ~0u, 252, 128);
+   //gfx.drawPng(speedometerBWLow, ~0u, 252, 128);
+}
+
+void drawMaxImageZone(){
+   //gfx.fillRect(10, 120, 64, 64, TFT_GREENYELLOW);
+   gfx.drawPng(speedometerColor48, ~0u, 15, 128);
+   //gfx.drawPng(speedometerBWHigh2, ~0u, 15, 128);
+}
+
 void vibrate(){
   M5.Axp.SetLDOEnable(3, true);
   delay(100);
   M5.Axp.SetLDOEnable(3, false);
+}
+
+
+void setFlagCurrentState(uint8_t flagToSet){
+  _currentState.currentInpOutState |= flagToSet;
+}
+
+void clearFlagCurrentState(uint8_t flagToClear){
+  _currentState.currentInpOutState &= ~flagToClear;
+}
+
+bool isFlagCurrentState(uint8_t flagToCheck){
+  return (_currentState.currentInpOutState & flagToCheck);
 }
 
 void applyReceivedData(){
@@ -44,17 +77,111 @@ void applyReceivedData(){
 }
 
 void intensityIncButtonPressed(){
+  vibrate();
+  uint16_t dacOutVoltage = _currentState.dacOutVoltage;
+  Serial.printf("dacOuVoltage = %d\n", dacOutVoltage);
+  if (dacOutVoltage < 10000u){
+    dacOutVoltage += 1000;
+    rsSendSetDACVoltage(dacOutVoltage);
+    displayDacOutVoltage(TFT_GREEN, dacOutVoltage);
+  }
 }
 
 void intensityDecButtonPressed(){
+  vibrate();
+  uint16_t dacOutVoltage = _currentState.dacOutVoltage;
+  Serial.printf("dacOuVoltage = %d\n", dacOutVoltage);
+  if (dacOutVoltage > 0u){
+    dacOutVoltage -= 1000;
+    rsSendSetDACVoltage(dacOutVoltage);
+    displayDacOutVoltage(TFT_GREEN, dacOutVoltage);
+  }
 }
 
-void drawManualIcon(){
+void setMaxPowerTButtonPressed(){
+  vibrate();
+  rsSendSetDACVoltage(10000);
+}
+
+void setOffPowerTButtonPressed(){
+  vibrate();
+  rsSendSetDACVoltage(0);
+}
+
+void switchHeatCoolTButtonPressed(){
+  if (isFlagCurrentState(HVAC_IS_HEATING))
+    rsSendSetHCState(0);
+  else 
+    rsSendSetHCState(1);
+}
+
+
+void updateDisplayHvacData(){
+  if (_currentState.currentInpOutState != _lastCurrentState.currentInpOutState){
+    _lastCurrentState.currentInpOutState = _currentState.currentInpOutState;
+    drawFlexItFanIcon();
+    drawCoolHeatIcon();
+  }
+  if (_currentState.dacOutVoltage != _lastCurrentState.dacOutVoltage){
+    _lastCurrentState.dacOutVoltage = _currentState.dacOutVoltage;
+    displayDacOutVoltage(DISP_TEXT_COLOR, _currentState.dacOutVoltage);
+  }
+  if (_reDrawImageButtons){
+    drawMaxImageZone();
+    drawOffImageZone();
+    drawCoolHeatIcon();
+    _reDrawImageButtons = false;
+  }
+}
+
+void drawFlexItFanIcon(){
   gfx.fillRect(0, 0, 64, 64, DISP_BACK_COLOR);
-  if (isFlagCurrentState(PAN_TCP_RSWITCH_AUTO))
-    gfx.drawPng(auto48, ~0u, 8, 8);
-  else
-    gfx.drawPng(manualMode64, ~0u, 0, 0);
+  gfx.setCursor(47, 5);
+  gfx.setFont(&fonts::efontCN_16_b);
+  gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
+
+  if (isFlagCurrentState(HVAC_FLEXIT_PIN4)){
+    gfx.drawPng(fanPowerOff64, ~0u, 0, 0);
+    //gfx.setTextColor(TFT_LIGHTGREY, DISP_BACK_COLOR);
+    gfx.print("OFF ");
+  }else{
+    if (isFlagCurrentState(HVAC_FLEXIT_PIN5) && isFlagCurrentState(HVAC_FLEXIT_PIN6)){
+      gfx.drawPng(fanPowerMin64, ~0u, 0, 0);
+      //gfx.setTextColor(TFT_GOLD, DISP_BACK_COLOR);
+      gfx.print("MIN ");
+
+    }else if (isFlagCurrentState(HVAC_FLEXIT_PIN6)){
+      gfx.drawPng(fanPowerNorm64, ~0u, 0, 0);
+      //gfx.setTextColor(TFT_DARKGREEN, DISP_BACK_COLOR);
+      gfx.print("NORM");
+    }else{
+      gfx.drawPng(fanPowerMax64, ~0u, 0, 0);
+      gfx.setTextColor(TFT_RED, DISP_BACK_COLOR);
+      gfx.print("MAX ");
+    }
+  }
+}
+
+void drawCoolHeatIcon(){
+  gfx.fillRect(136, 8, 48, 48, DISP_BACK_COLOR);
+  if (isFlagCurrentState(HVAC_IS_HEATING)){
+    gfx.drawPng(heatwave48, ~0u, 136, 10);
+  }else{ 
+    gfx.drawPng(freezingTemp48, ~0u, 136, 10);
+  }
+}
+
+void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage){
+  gfx.setCursor(113, 73);
+  const lgfx::v1::IFont *defFont = gfx.getFont();
+  gfx.setFont(&data_latin24pt7b);
+  if (dacOutVoltage == 0){
+    gfx.setTextColor(TFT_RED, DISP_BACK_COLOR);
+    gfx.print("OFF ");
+  }else{
+    gfx.setTextColor(dispColor, DISP_BACK_COLOR);
+    gfx.printf("%3d%%", dacOutVoltage/100);
+  }
 }
 
 void showStatusIcons(){
@@ -239,9 +366,19 @@ void setup(){
   _netNodeParam.nodeAddrType = ADDR_HVACHMI;
   _netNodeParam.tcpNodeType = tcpNodeTypeHVACDispEnum;
   initNetwork();
+  initSerialDataM5Stack();
   initButtons();
+  drawMaxImageZone();
+  drawOffImageZone();
   showStatusIcons();
   readConfiguration();
+  _reqHVACCurrentStateTicker.attach_ms(TIMER_HVAC_UPDATE, reqHVACCurrentState);
+  _lastCurrentState.currentInpOutState = 0xFF;
+  _lastCurrentState.dacOutVoltage = 0xFFFF;
+}
+
+void reqHVACCurrentState(){
+  _getCurrentHvacStateFlag = 1;
 }
 
 void loop() {
@@ -257,6 +394,12 @@ void loop() {
   if (processDataFromHVAC() > 0){
     if (_currentState.validDataHVAC == DATAHVAC_TCPREQ)
       sendCurrentStateToPAN();
+    updateDisplayHvacData();
+  }
+
+  if (_getCurrentHvacStateFlag == 1){
+    _getCurrentHvacStateFlag = 0;
+    rsSendGetCurrentState();
   }
 
   if (_getCurrentTimeFlag == TIMEFLAG_REQUIREPANTIME)
@@ -269,6 +412,32 @@ void loop() {
   if (intensityDecTButton.wasPressed()){
     intensityDecButtonPressed();
   }
+
+  if (setMaxPowerTButton.wasPressed()){
+    setMaxPowerTButtonPressed();
+  }
+
+  if (setMaxPowerTButton.wasReleased()){
+    _reDrawImageButtons = true;
+  }
+
+  if (setOffPowerTButton.wasPressed()){
+    setOffPowerTButtonPressed();
+  }
+
+  if (setOffPowerTButton.wasReleased()){
+    _reDrawImageButtons = true;
+  }
+
+  if (switchHeatCoolTButton.wasPressed()){
+    vibrate();
+    switchHeatCoolTButtonPressed();
+  }
+
+  if (switchHeatCoolTButton.wasReleased()){
+    _reDrawImageButtons = true;
+  }
+
   // if (M5.Touch.changed){
   //   Point pressedPoint = M5.Touch.getPressPoint();
   //   if (pressedPoint.in(lightImageZone))

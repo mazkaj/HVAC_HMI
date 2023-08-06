@@ -18,7 +18,7 @@
 #define USE_RTC
 
 #define TIMER_WIFI_CHECK    1000      //ms
-#define TIMER_PAN_UPDATE   8000      //ms
+#define TIMER_HVAC_UPDATE   500      //ms
 #define TIMEOUT_TCP_ANSWER   100    //ms
 
 #define TIMEFLAG_WAITFORMIDNIGHT    0
@@ -49,8 +49,14 @@ typedef struct
 } nodeConfig_t;
 
 void initButtons();
+void drawOffImageZone();
+void drawMaxImageZone();
 void vibrate();
 void applyReceivedData();
+void updateDisplayHvacData();
+void drawFlexItFanIcon();
+void drawCoolHeatIcon();
+void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage);
 void doActionSwitchOnButtonPressed();
 void doActionSwitchOffButtonPressed();
 void showStatusIcons();
@@ -69,6 +75,7 @@ void setFlagCurrentState(uint8_t flagToSet);
 void clearFlagCurrentState(uint8_t flagToClear);
 bool isFlagCurrentState(uint8_t flagToCheck);
 int16_t temperatBMEBytesToInt(uint8_t highByte, uint8_t lowByte);
+void reqHVACCurrentState();
 void refreshCurrentState();
 void setup();
 void loop();
