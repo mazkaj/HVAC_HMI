@@ -135,6 +135,17 @@ void updateDisplayHvacData(){
     drawCoolHeatIcon();
     _reDrawImageButtons = false;
   }
+  displayHvacWiFiInfo();
+}
+
+void displayHvacWiFiInfo(){
+  gfx.setFont(WIFI_STATUS_FONT);
+  gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
+  gfx.setCursor(2, 223);
+  gfx.printf("%d:%d", _currentState.hvacipAddress, _currentState.hvacTcpIndexInConnTable);
+
+  gfx.setCursor(2, 208);
+  gfx.printf("%s", _currentState.hvacWiFiSSID.c_str());
 }
 
 void drawFlexItFanIcon(){

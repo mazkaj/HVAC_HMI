@@ -41,6 +41,9 @@ typedef struct
     uint16_t dacOutVoltage;
     uint8_t currentInpOutState;
     uint8_t initDone;
+    String hvacWiFiSSID;
+    uint8_t hvacipAddress;
+    uint8_t hvacTcpIndexInConnTable;
     float roomTemperature;
 } currentState_t;
 
@@ -58,6 +61,7 @@ void applyReceivedData();
 void updateDisplayHvacData();
 void drawFlexItFanIcon();
 void drawCoolHeatIcon();
+void displayHvacWiFiInfo();
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage);
 void doActionSwitchOnButtonPressed();
 void doActionSwitchOffButtonPressed();

@@ -12,9 +12,11 @@ void initSerialDataM5Stack(){
 }
 
 uint8_t processDataFromHVAC(){
-    uint8_t receivedBuffer[RS_BUFFER_SIZE];
+    uint8_t receivedBuffer[RS_HVACBUFFER_SIZE];
     size_t charsAvailable = uartToM5Stack.available();
     if (charsAvailable > 0){
+        if (charsAvailable > RS_HVACBUFFER_SIZE)
+            charsAvailable = RS_HVACBUFFER_SIZE;
         uint8_t receivedBytes = uartToM5Stack.read(receivedBuffer, charsAvailable);
         Serial.printf("RS received bytes = %d : ", receivedBytes);
         return analizeReceivedData(receivedBuffer, receivedBytes);
@@ -33,27 +35,34 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
         return 0;
     uint8_t posInPacket = 0;
     iChar++;
+    _currentState.hvacWiFiSSID = "";
     while (iChar < receivedBytes){
 
         Serial.printf("%02X ", receivedBuffer[iChar]);
 
-        if (receivedBuffer[iChar] == ETX && posInPacket == 4)
+        if (receivedBuffer[iChar] == ETX && posInPacket == 20)
             break;
         
-        switch (posInPacket){
-            case 0:
-            break;
-            case 1:
-                _currentState.dacOutVoltage = receivedBuffer[iChar];
-                _currentState.dacOutVoltage <<= 8;
-                break;
-            case 2:
+        if (posInPacket == 0){
+            _currentState.hvacTcpIndexInConnTable = receivedBuffer[iChar];
+        }
+        if (posInPacket == 1){
+            _currentState.dacOutVoltage = receivedBuffer[iChar];
+            _currentState.dacOutVoltage <<= 8;
+        }
+        if (posInPacket == 2)
                 _currentState.dacOutVoltage |= receivedBuffer[iChar];
-                break;
-            case 3:
-                _currentState.currentInpOutState = receivedBuffer[iChar];
-                break;
-        }        
+        
+        if (posInPacket == 3)
+            _currentState.currentInpOutState = receivedBuffer[iChar];
+
+        if (posInPacket >= 4 && posInPacket <= 18 && receivedBuffer[iChar] != 0){
+            _currentState.hvacWiFiSSID += (char)receivedBuffer[iChar];
+        }
+
+        if (posInPacket == 19)
+            _currentState.hvacipAddress = receivedBuffer[iChar];
+
         posInPacket++;
         iChar++;
     }
