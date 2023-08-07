@@ -26,11 +26,11 @@ Zone offImageZone = Zone(240,120,64,64);
 Zone maxImageZone = Zone(10,120,64,64);
 Zone lightImageZone = Zone(244,120,64,64);
 
-Button intensityIncTButton(83, 115, 75, 75, false, "+", {GREEN, BLACK, WHITE});
-Button intensityDecTButton(160, 115, 75, 75, false, "-", {GREEN, BLACK, WHITE});
-Button setMaxPowerTButton(3, 115, 75, 75, false, "", {YELLOW, BLACK, WHITE});
-Button setOffPowerTButton(240, 115, 75, 75, false, "", {YELLOW, BLACK, WHITE});
-Button switchHeatCoolTButton(126, 2, 66, 66, false, "", {WHITE, BLACK, BLACK});
+Button intensityIncTButton(83, 120, 75, 75, false, "+", {GREEN, BLACK, WHITE});
+Button intensityDecTButton(160, 120, 75, 75, false, "-", {GREEN, BLACK, WHITE});
+Button setMaxPowerTButton(3, 120, 75, 75, false, "", {YELLOW, BLACK, WHITE});
+Button setOffPowerTButton(240, 120, 75, 75, false, "", {YELLOW, BLACK, WHITE});
+Button switchHeatCoolTButton(83, 48, 152, 66, false, "", {WHITE, BLACK, BLACK});
 
 void initButtons(){
    intensityIncTButton.setFreeFont(&dodger320pt7b);
@@ -42,13 +42,13 @@ void initButtons(){
 
 void drawOffImageZone(){
    //gfx.fillRect(240, 120, 64, 64, TFT_MAGENTA);
-   gfx.drawPng(stopSign48, ~0u, 252, 128);
+   gfx.drawPng(stopSign48, ~0u, 252, 133);
    //gfx.drawPng(speedometerBWLow, ~0u, 252, 128);
 }
 
 void drawMaxImageZone(){
    //gfx.fillRect(10, 120, 64, 64, TFT_GREENYELLOW);
-   gfx.drawPng(speedometerColor48, ~0u, 15, 128);
+   gfx.drawPng(speedometerColor48, ~0u, 15, 133);
    //gfx.drawPng(speedometerBWHigh2, ~0u, 15, 128);
 }
 
@@ -111,6 +111,7 @@ void setOffPowerTButtonPressed(){
 }
 
 void switchHeatCoolTButtonPressed(){
+  rsSendSetDACVoltage(0);
   if (isFlagCurrentState(HVAC_IS_HEATING))
     rsSendSetHCState(0);
   else 
@@ -137,69 +138,80 @@ void updateDisplayHvacData(){
 }
 
 void drawFlexItFanIcon(){
-  gfx.fillRect(0, 0, 64, 64, DISP_BACK_COLOR);
-  gfx.setCursor(47, 5);
+  uint8_t posYImage = 48;
+  uint8_t posXImage = 242;
+  gfx.fillRect(posXImage, posYImage, 64, 64, DISP_BACK_COLOR);
+  gfx.setCursor(posXImage + 47, posYImage + 5);
   gfx.setFont(&fonts::efontCN_16_b);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
 
   if (isFlagCurrentState(HVAC_FLEXIT_PIN4)){
-    gfx.drawPng(fanPowerOff64, ~0u, 0, 0);
+    gfx.drawPng(fanPowerOff64, ~0u, posXImage, posYImage);
     //gfx.setTextColor(TFT_LIGHTGREY, DISP_BACK_COLOR);
-    gfx.print("OFF ");
+    gfx.print("OFF");
   }else{
     if (isFlagCurrentState(HVAC_FLEXIT_PIN5) && isFlagCurrentState(HVAC_FLEXIT_PIN6)){
-      gfx.drawPng(fanPowerMin64, ~0u, 0, 0);
+      gfx.drawPng(fanPowerMin64, ~0u, posXImage, posYImage);
       //gfx.setTextColor(TFT_GOLD, DISP_BACK_COLOR);
-      gfx.print("MIN ");
+      gfx.print("MIN");
 
     }else if (isFlagCurrentState(HVAC_FLEXIT_PIN6)){
-      gfx.drawPng(fanPowerNorm64, ~0u, 0, 0);
+      gfx.drawPng(fanPowerNorm64, ~0u, posXImage, posYImage);
       //gfx.setTextColor(TFT_DARKGREEN, DISP_BACK_COLOR);
-      gfx.print("NORM");
+      gfx.print("MID");
     }else{
-      gfx.drawPng(fanPowerMax64, ~0u, 0, 0);
+      gfx.drawPng(fanPowerMax64, ~0u, posXImage, posYImage);
       gfx.setTextColor(TFT_RED, DISP_BACK_COLOR);
-      gfx.print("MAX ");
+      gfx.print("MAX");
     }
   }
 }
 
 void drawCoolHeatIcon(){
-  gfx.fillRect(136, 8, 48, 48, DISP_BACK_COLOR);
+  gfx.fillRect(87, 56, 48, 48, DISP_BACK_COLOR);
   if (isFlagCurrentState(HVAC_IS_HEATING)){
-    gfx.drawPng(heatwave48, ~0u, 136, 10);
+    gfx.drawPng(heatwave48, ~0u, 87, 56);
   }else{ 
-    gfx.drawPng(freezingTemp48, ~0u, 136, 10);
+    gfx.drawPng(freezingTemp48, ~0u, 87, 56);
   }
+  displayDacOutVoltage(DISP_TEXT_COLOR, _currentState.dacOutVoltage);
 }
 
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage){
-  gfx.setCursor(113, 73);
+  gfx.setCursor(138, 66);
   gfx.setFont(&data_latin24pt7b);
   if (dacOutVoltage == 0){
     gfx.setTextColor(TFT_RED, DISP_BACK_COLOR);
-    gfx.print("OFF ");
+    gfx.print("STOP");
   }else{
     gfx.setTextColor(dispColor, DISP_BACK_COLOR);
     gfx.printf("%3d%%", dacOutVoltage/100);
   }
+  gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
 }
 
 void displayCurrentTemp(){
-  gfx.setCursor(0, 73);
-  gfx.setFont(&data_latin24pt7b);
-  gfx.printf("%3.1f", _currentState.roomTemperature);
+  gfx.setCursor(196, 2);
+  gfx.setFont(&prototype22pt7b);
+  gfx.printf("%3.1f  ", _currentState.roomTemperature);
+  gfx.drawPng(homeTemperature32, ~0u, 288, 4);
 }
 
 void showStatusIcons(){
 }
 
 void displayTime(){
+  static uint8_t lastMinute = 60;
   RTC_TimeTypeDef currentTime;
   M5.Rtc.GetTime(&currentTime);
-  gfx.setCursor(200, 15);
+  if (lastMinute == currentTime.Minutes)
+    return;
+  lastMinute = currentTime.Minutes;
+  gfx.setCursor(4, 4);
   const lgfx::v1::IFont *defFont = gfx.getFont();
   gfx.setFont(&data_latin24pt7b);
+  gfx.print("     ");
+  gfx.setCursor(4, 4);
   gfx.printf("%2d:%02d", currentTime.Hours, currentTime.Minutes);
   gfx.setFont(defFont);
   if (!_currentState.getTimeFlag == TIMEFLAG_WAITFORMIDNIGHT && currentTime.Hours == 4 && currentTime.Minutes == 15)
@@ -239,10 +251,10 @@ void checkBatCondition(){
 
 void showWiFiStrength(int8_t lastRSSIValue){
   uint8_t currentWiFiIconType;
-  gfx.setFont(&fonts::efontCN_16_b);
-  gfx.setTextColor(DISP_TEXT_COLOR, TFT_WHITE);
-  gfx.setCursor(290, 192);
-  gfx.printf("%d%%", 100+lastRSSIValue);
+  // gfx.setFont(&fonts::efontCN_16_b);
+  // gfx.setTextColor(DISP_TEXT_COLOR, TFT_WHITE);
+  // gfx.setCursor(290, 192);
+  // gfx.printf("%d%%", 100+lastRSSIValue);
 
   if (lastRSSIValue > -40)
     currentWiFiIconType = 1;
@@ -379,6 +391,8 @@ void setup(){
   M5.Rtc.begin();
   WiFi.mode(WIFI_STA);
   gfx.clear(DISP_BACK_COLOR);
+  gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
+  gfx.drawPng(homeTemperature32, ~0u, 288, 4);
   _netNodeParam.nodeAddrType = ADDR_HVACHMI;
   _netNodeParam.tcpNodeType = tcpNodeTypeHVACDispEnum;
   initDS18B20();
@@ -400,7 +414,7 @@ void loop() {
   uint8_t receivedBuffer[TCP_BUFFER_SIZE];
 
   displayTime();
-  checkBatCondition();
+//  checkBatCondition();
   if (_getCurrentTempFlag == 1){
     _getCurrentTempFlag = 2;
     dsReqTemperature();
