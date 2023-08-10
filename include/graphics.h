@@ -11,6 +11,8 @@
 #include "heatwave48.h"
 #include "freezingTemp48.h"
 #include "homeTemperature32.h"
+#include "autoMode48.h"
+#include "manualMode48.h"
 #include "battery_charge.h"
 #include "battery_full.h"
 #include "battery_half.h"

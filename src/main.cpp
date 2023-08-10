@@ -21,16 +21,18 @@ uint8_t _getCurrentTempFlag = 0;
 int16_t _gapoTempValue;
 currentState_t _lastCurrentState;
 bool _reDrawImageButtons = false;
+bool _autoMode = false;
 
 Zone offImageZone = Zone(240,120,64,64);
 Zone maxImageZone = Zone(10,120,64,64);
 Zone lightImageZone = Zone(244,120,64,64);
 
-Button intensityIncTButton(83, 120, 75, 75, false, "+", {GREEN, BLACK, WHITE});
-Button intensityDecTButton(160, 120, 75, 75, false, "-", {GREEN, BLACK, WHITE});
-Button setMaxPowerTButton(3, 120, 75, 75, false, "", {YELLOW, BLACK, WHITE});
-Button setOffPowerTButton(240, 120, 75, 75, false, "", {YELLOW, BLACK, WHITE});
-Button switchHeatCoolTButton(83, 48, 152, 66, false, "", {WHITE, BLACK, BLACK});
+Button intensityIncTButton(83, 120, 75, 75, false, "+", {LIGHTGREY, BLACK, BLACK});
+Button intensityDecTButton(160, 120, 75, 75, false, "-", {LIGHTGREY, BLACK, BLACK});
+Button setMaxPowerTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
+Button setOffPowerTButton(240, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
+Button switchHeatCoolTButton(83, 48, 152, 66, false, "", {LIGHTGREY, BLACK, BLACK});
+Button manAutoTButton(3, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
 
 void initButtons(){
    intensityIncTButton.setFreeFont(&dodger320pt7b);
@@ -50,6 +52,14 @@ void drawMaxImageZone(){
    //gfx.fillRect(10, 120, 64, 64, TFT_GREENYELLOW);
    gfx.drawPng(speedometerColor48, ~0u, 15, 133);
    //gfx.drawPng(speedometerBWHigh2, ~0u, 15, 128);
+}
+
+void drawManAutoImageZone(){
+   gfx.fillRect(16, 56, 48, 48, TFT_LIGHTGRAY);
+   if (_autoMode)
+      gfx.drawPng(autoMode48, ~0u, 16, 56);
+   else
+      gfx.drawPng(manualMode48, ~0u, 16, 56);
 }
 
 void vibrate(){
@@ -133,6 +143,7 @@ void updateDisplayHvacData(){
     drawMaxImageZone();
     drawOffImageZone();
     drawCoolHeatIcon();
+    drawManAutoImageZone();
     _reDrawImageButtons = false;
   }
   displayHvacWiFiInfo();
@@ -142,7 +153,7 @@ void displayHvacWiFiInfo(){
   gfx.setFont(WIFI_STATUS_FONT);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   gfx.setCursor(2, 223);
-  gfx.printf("%d:%d", _currentState.hvacipAddress, _currentState.hvacTcpIndexInConnTable);
+  gfx.printf("%d:%03d", _currentState.hvacipAddress, _currentState.hvacTcpIndexInConnTable);
 
   gfx.setCursor(2, 208);
   gfx.printf("%s", _currentState.hvacWiFiSSID.c_str());
@@ -179,7 +190,7 @@ void drawFlexItFanIcon(){
 }
 
 void drawCoolHeatIcon(){
-  gfx.fillRect(87, 56, 48, 48, DISP_BACK_COLOR);
+  gfx.fillRect(87, 56, 48, 48, LIGHTGREY);
   if (isFlagCurrentState(HVAC_IS_HEATING)){
     gfx.drawPng(heatwave48, ~0u, 87, 56);
   }else{ 
@@ -192,10 +203,10 @@ void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage){
   gfx.setCursor(138, 66);
   gfx.setFont(&data_latin24pt7b);
   if (dacOutVoltage == 0){
-    gfx.setTextColor(TFT_RED, DISP_BACK_COLOR);
+    gfx.setTextColor(TFT_RED, LIGHTGREY);
     gfx.print("STOP");
   }else{
-    gfx.setTextColor(dispColor, DISP_BACK_COLOR);
+    gfx.setTextColor(dispColor, LIGHTGREY);
     gfx.printf("%3d%%", dacOutVoltage/100);
   }
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
@@ -412,6 +423,7 @@ void setup(){
   initButtons();
   drawMaxImageZone();
   drawOffImageZone();
+  drawManAutoImageZone();
   showStatusIcons();
   readConfiguration();
   _reqHVACCurrentStateTicker.attach_ms(TIMER_HVAC_UPDATE, reqHVACCurrentState);
@@ -486,7 +498,15 @@ void loop() {
     _reDrawImageButtons = true;
   }
 
-  // if (M5.Touch.changed){
+  if (manAutoTButton.wasPressed()){
+    vibrate();
+    _autoMode = !_autoMode;
+  }
+
+  if (manAutoTButton.wasReleased()){
+    _reDrawImageButtons = true;
+  }
+// if (M5.Touch.changed){
   //   Point pressedPoint = M5.Touch.getPressPoint();
   //   if (pressedPoint.in(lightImageZone))
   //     toggleOutputState();
