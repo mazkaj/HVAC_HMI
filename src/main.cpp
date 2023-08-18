@@ -106,6 +106,8 @@ void updateDisplayHvacData(){
     _lastCurrentState.ioState = _currentState.ioState;
     drawFlexItFanIcon();
     drawCoolHeatIcon();
+    redrawAutoManMode();
+    displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
   }
   if (_currentState.dacOutVoltage != _lastCurrentState.dacOutVoltage){
     _lastCurrentState.dacOutVoltage = _currentState.dacOutVoltage;
@@ -470,7 +472,7 @@ void setup(){
   M5.begin();
   gfx.begin();
   M5.Rtc.begin();
-  M5.Lcd.setBrightness(50);
+  gfx.setBrightness(25);
   WiFi.mode(WIFI_STA);
   gfx.clear(DISP_BACK_COLOR);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
