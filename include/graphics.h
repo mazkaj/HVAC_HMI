@@ -13,6 +13,8 @@
 #include "homeTemperature32.h"
 #include "autoMode48.h"
 #include "manualMode48.h"
+#include "celciusSign32.h"
+#include "humidityPercent32.h"
 #include "battery_charge.h"
 #include "battery_full.h"
 #include "battery_half.h"

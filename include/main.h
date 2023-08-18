@@ -37,14 +37,14 @@ typedef struct
     RTC_DateTypeDef date;
     uint8_t getTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
     uint8_t validDataHVAC = DATAHVAC_VALID;
-    uint8_t tcpIndexInConnTable;
     uint16_t dacOutVoltage;
-    uint8_t currentInpOutState;
-    uint8_t initDone;
+    float roomTemperature;
+    float roomHumidity;
+    uint8_t reqTemperature = 24;
+    uint8_t ioState;
     String hvacWiFiSSID;
     uint8_t hvacipAddress;
     uint8_t hvacTcpIndexInConnTable;
-    float roomTemperature;
 } currentState_t;
 
 typedef struct
@@ -63,6 +63,7 @@ void drawFlexItFanIcon();
 void drawCoolHeatIcon();
 void displayHvacWiFiInfo();
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage);
+void displayReqTemperature();
 void doActionSwitchOnButtonPressed();
 void doActionSwitchOffButtonPressed();
 void showStatusIcons();

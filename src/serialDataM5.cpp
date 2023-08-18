@@ -54,7 +54,7 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
                 _currentState.dacOutVoltage |= receivedBuffer[iChar];
         
         if (posInPacket == 3)
-            _currentState.currentInpOutState = receivedBuffer[iChar];
+            _currentState.ioState = receivedBuffer[iChar];
 
         if (posInPacket >= 4 && posInPacket <= 18 && receivedBuffer[iChar] != 0){
             _currentState.hvacWiFiSSID += (char)receivedBuffer[iChar];
@@ -75,12 +75,12 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
 
 void rsSendSetDACVoltage(uint16_t setVoltage){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];
+
     rsSendBuffer[0] = STX;
-    rsSendBuffer[1] = _currentState.tcpIndexInConnTable;
-    rsSendBuffer[2] = HVAC_CMD_SETVOLTAGE;
-    rsSendBuffer[3] = (uint8_t)(setVoltage >> 8);
-    rsSendBuffer[4] = (uint8_t)(setVoltage);
-    rsSendBuffer[5] = ETX;
+    rsSendBuffer[1] = HVAC_CMD_SETVOLTAGE;
+    rsSendBuffer[2] = (uint8_t)(setVoltage >> 8);
+    rsSendBuffer[3] = (uint8_t)(setVoltage);
+    rsSendBuffer[4] = ETX;
     Serial.printf("rsSendSetDACVoltage = %d\n", setVoltage);
     for (int i = 0; i < RS_BUFFER_SIZE; i++)
         Serial.printf("%02X ", rsSendBuffer[i]);
@@ -91,21 +91,19 @@ void rsSendSetDACVoltage(uint16_t setVoltage){
 void rsSendSetHCState(uint8_t hcState){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];
     rsSendBuffer[0] = STX;
-    rsSendBuffer[1] = _currentState.tcpIndexInConnTable;
-    rsSendBuffer[2] = HVAC_CMD_COOL_HEAT;
-    rsSendBuffer[3] = 0;
-    rsSendBuffer[4] = hcState;
-    rsSendBuffer[5] = ETX;
+    rsSendBuffer[1] = HVAC_CMD_COOL_HEAT;
+    rsSendBuffer[2] = 0;
+    rsSendBuffer[3] = hcState;
+    rsSendBuffer[4] = ETX;
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }
 
 void rsSendGetCurrentState(){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];
     rsSendBuffer[0] = STX;
-    rsSendBuffer[1] = _currentState.tcpIndexInConnTable;
-    rsSendBuffer[2] = HVAC_CMD_GETCURRENTDATA;
+    rsSendBuffer[1] = HVAC_CMD_GETCURRENTDATA;
+    rsSendBuffer[2] = 0;
     rsSendBuffer[3] = 0;
-    rsSendBuffer[4] = 0;
-    rsSendBuffer[5] = ETX;
+    rsSendBuffer[4] = ETX;
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }

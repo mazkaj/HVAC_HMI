@@ -7,4 +7,6 @@ void processTcpDataReq(uint8_t *receivedBuffer);
 void initDS18B20();
 void dsReqTemperature();
 bool dsGetTemperature();
+void initSHT40();
+void shtGetParameters();
 #endif

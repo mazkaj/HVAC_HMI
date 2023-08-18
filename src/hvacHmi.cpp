@@ -4,6 +4,7 @@
 #include "serialDataM5.h"
 #include "OneWire.h"
 #include "DallasTemperature.h"
+#include "DFRobot_SHT40.h"
 
 currentState_t _currentState;
 nodeConfig_t _nodeConfig;
@@ -12,18 +13,23 @@ OneWire _ds(25);
 DallasTemperature _dsSensors(&_ds);
 DeviceAddress _thermometerAddress;
 
+DFRobot_SHT40 _sensorSHT40(SHT40_AD1B_IIC_ADDR);
+uint32_t _idSHT = 0;
+
 void sendCurrentStateToPAN(){
    sendCurrentState(0, 0);
 }
 
 void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
     uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 4];
+    wifiState_t wifiState;
+    getWiFiState(&wifiState);
     tcpSendBuffer[eTcpPacketPosRecipientAddr0] = recipientAddress0;
     tcpSendBuffer[eTcpPacketPosRecipientAddr1] = recipientAddress1;
-    tcpSendBuffer[eTcpPacketPosStartPayLoad] = _currentState.tcpIndexInConnTable;
+    tcpSendBuffer[eTcpPacketPosStartPayLoad] = wifiState.tcpIndexInConnectionTable;
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 1] = (byte)(_currentState.dacOutVoltage >> 8);
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 2] = (byte)(_currentState.dacOutVoltage);
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.currentInpOutState;
+    tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
     sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
     Serial.printf("sendCurrentState to %02X %02X\n", recipientAddress0, recipientAddress1);
     _currentState.validDataHVAC = DATAHVAC_VALID;
@@ -87,4 +93,19 @@ bool dsGetTemperature(){
   return false;
 }
 
+void initSHT40(){
+    _sensorSHT40.begin();
+    while((_idSHT = _sensorSHT40.getDeviceID()) == 0){
+      Serial.println("ID retrieval error, please check whether the device is connected correctly!!!");
+      delay(500);
+    }
+  Serial.print("SHT id :0x"); 
+  Serial.println(_idSHT, HEX);
+}
 
+void shtGetParameters(){
+    _currentState.roomTemperature = _sensorSHT40.getTemperature(PRECISION_LOW);
+    _currentState.roomHumidity = _sensorSHT40.getHumidity(PRECISION_LOW);
+    Serial.printf("Temperature = %f\n", _currentState.roomTemperature);
+    Serial.printf("Humidity = %f\n", _currentState.roomHumidity);
+}

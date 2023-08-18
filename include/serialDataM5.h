@@ -2,7 +2,7 @@
 	#define	__SERIALDATAM5_H
 
 
-#define RS_BUFFER_SIZE  6
+#define RS_BUFFER_SIZE  5
 #define RS_HVACBUFFER_SIZE  22
 
 #define STX 0x02
