@@ -62,6 +62,19 @@ void drawManAutoImageZone(){
       gfx.drawPng(manualMode48, ~0u, 16, 56);
 }
 
+void redrawAutoManMode(){
+    gfx.fillRect(136, 56, 98, 42, LIGHTGREY);
+    if (_autoMode){
+      gfx.drawPng(celciusSign32, ~0u, 192, 67);
+      displayReqTemperature();
+    }else{
+      gfx.setCursor(125, 204);
+      gfx.setFont(&fonts::efontCN_24_b);
+      gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
+      gfx.print("    ");
+    }
+}
+
 void vibrate(){
   M5.Axp.SetLDOEnable(3, true);
   delay(100);
@@ -70,15 +83,15 @@ void vibrate(){
 
 
 void setFlagCurrentState(uint8_t flagToSet){
-  _currentState.currentInpOutState |= flagToSet;
+  _currentState.ioState |= flagToSet;
 }
 
 void clearFlagCurrentState(uint8_t flagToClear){
-  _currentState.currentInpOutState &= ~flagToClear;
+  _currentState.ioState &= ~flagToClear;
 }
 
 bool isFlagCurrentState(uint8_t flagToCheck){
-  return (_currentState.currentInpOutState & flagToCheck);
+  return (_currentState.ioState & flagToCheck);
 }
 
 void applyReceivedData(){
@@ -88,50 +101,9 @@ void applyReceivedData(){
     showGaPoData();
 }
 
-void intensityIncButtonPressed(){
-  vibrate();
-  uint16_t dacOutVoltage = _currentState.dacOutVoltage;
-  Serial.printf("dacOuVoltage = %d\n", dacOutVoltage);
-  if (dacOutVoltage < 10000u){
-    dacOutVoltage += 1000;
-    rsSendSetDACVoltage(dacOutVoltage);
-    displayDacOutVoltage(TFT_GREEN, dacOutVoltage);
-  }
-}
-
-void intensityDecButtonPressed(){
-  vibrate();
-  uint16_t dacOutVoltage = _currentState.dacOutVoltage;
-  Serial.printf("dacOuVoltage = %d\n", dacOutVoltage);
-  if (dacOutVoltage > 0u){
-    dacOutVoltage -= 1000;
-    rsSendSetDACVoltage(dacOutVoltage);
-    displayDacOutVoltage(TFT_GREEN, dacOutVoltage);
-  }
-}
-
-void setMaxPowerTButtonPressed(){
-  vibrate();
-  rsSendSetDACVoltage(10000);
-}
-
-void setOffPowerTButtonPressed(){
-  vibrate();
-  rsSendSetDACVoltage(0);
-}
-
-void switchHeatCoolTButtonPressed(){
-  rsSendSetDACVoltage(0);
-  if (isFlagCurrentState(HVAC_IS_HEATING))
-    rsSendSetHCState(0);
-  else 
-    rsSendSetHCState(1);
-}
-
-
 void updateDisplayHvacData(){
-  if (_currentState.currentInpOutState != _lastCurrentState.currentInpOutState){
-    _lastCurrentState.currentInpOutState = _currentState.currentInpOutState;
+  if (_currentState.ioState != _lastCurrentState.ioState){
+    _lastCurrentState.ioState = _currentState.ioState;
     drawFlexItFanIcon();
     drawCoolHeatIcon();
   }
@@ -200,16 +172,32 @@ void drawCoolHeatIcon(){
 }
 
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage){
-  gfx.setCursor(138, 66);
-  gfx.setFont(&data_latin24pt7b);
+  int bgColor = DISP_BACK_COLOR;
+  if (_autoMode){
+    gfx.setCursor(125, 204);
+    gfx.setFont(&fonts::efontCN_24_b);
+  }else{
+    gfx.setCursor(138, 66);
+    gfx.setFont(&data_latin24pt7b);
+    bgColor = LIGHTGREY;
+  }
   if (dacOutVoltage == 0){
-    gfx.setTextColor(TFT_RED, LIGHTGREY);
+    gfx.setTextColor(TFT_RED, bgColor);
     gfx.print("STOP");
   }else{
-    gfx.setTextColor(dispColor, LIGHTGREY);
+    gfx.setTextColor(dispColor, bgColor);
     gfx.printf("%3d%%", dacOutVoltage/100);
   }
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
+}
+
+void displayReqTemperature(){
+    gfx.setCursor(142, 66);
+    gfx.setFont(&data_latin24pt7b);
+    gfx.setTextColor(DISP_TEXT_COLOR, LIGHTGREY);
+    gfx.printf("%2d", _currentState.reqTemperature);
+    gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
+
 }
 
 void displayCurrentTemp(){
@@ -217,9 +205,6 @@ void displayCurrentTemp(){
   gfx.setFont(&prototype22pt7b);
   gfx.printf("%3.1f  ", _currentState.roomTemperature);
   gfx.drawPng(homeTemperature32, ~0u, 288, 4);
-}
-
-void showStatusIcons(){
 }
 
 void displayTime(){
@@ -396,6 +381,80 @@ int16_t temperatBMEBytesToInt(uint8_t highByte, uint8_t lowByte){
 	return outTemperature;
 }
 
+void incDACVoltage(){
+  uint16_t dacOutVoltage = _currentState.dacOutVoltage;
+  Serial.printf("dacOuVoltage = %d\n", dacOutVoltage);
+  if (dacOutVoltage < 10000u){
+    dacOutVoltage += 1000;
+    rsSendSetDACVoltage(dacOutVoltage);
+    displayDacOutVoltage(TFT_GREEN, dacOutVoltage);
+  }
+}
+
+void incReqTemperature(){
+  if (_currentState.reqTemperature < 30){
+    _currentState.reqTemperature++;
+    displayReqTemperature();
+  }
+}
+
+void intensityIncButtonPressed(){
+  vibrate();
+  if (_autoMode)
+    incReqTemperature();
+  else
+    incDACVoltage();
+}
+
+void decDACVoltage(){
+  uint16_t dacOutVoltage = _currentState.dacOutVoltage;
+  Serial.printf("dacOuVoltage = %d\n", dacOutVoltage);
+  if (dacOutVoltage > 0u){
+    dacOutVoltage -= 1000;
+    rsSendSetDACVoltage(dacOutVoltage);
+    displayDacOutVoltage(TFT_GREEN, dacOutVoltage);
+  }
+}
+
+void decReqTemperature(){
+  if (_currentState.reqTemperature > 16){
+    _currentState.reqTemperature--;
+    displayReqTemperature();
+  }
+}
+
+void intensityDecButtonPressed(){
+  vibrate();
+  if (_autoMode)
+    decReqTemperature();
+  else
+    decDACVoltage();
+}
+
+void setMaxPowerTButtonPressed(){
+  vibrate();
+  rsSendSetDACVoltage(10000);
+  _autoMode = false;
+  displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
+  redrawAutoManMode();
+}
+
+void setOffPowerTButtonPressed(){
+  vibrate();
+  rsSendSetDACVoltage(0);
+  _autoMode = false;
+  displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
+  redrawAutoManMode();
+}
+
+void switchHeatCoolTButtonPressed(){
+  rsSendSetDACVoltage(0);
+  if (isFlagCurrentState(HVAC_IS_HEATING))
+    rsSendSetHCState(0);
+  else 
+    rsSendSetHCState(1);
+}
+
 void reqHVACCurrentState(){
   _getCurrentHvacStateFlag = 1;
 }
@@ -411,24 +470,26 @@ void setup(){
   M5.begin();
   gfx.begin();
   M5.Rtc.begin();
+  M5.Lcd.setBrightness(50);
   WiFi.mode(WIFI_STA);
   gfx.clear(DISP_BACK_COLOR);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   gfx.drawPng(homeTemperature32, ~0u, 288, 4);
   _netNodeParam.nodeAddrType = ADDR_HVACHMI;
   _netNodeParam.tcpNodeType = tcpNodeTypeHVACDispEnum;
-  initDS18B20();
+  //initDS18B20();
+  initSHT40();
   initNetwork();
   initSerialDataM5Stack();
   initButtons();
   drawMaxImageZone();
   drawOffImageZone();
   drawManAutoImageZone();
-  showStatusIcons();
+  redrawAutoManMode();
   readConfiguration();
   _reqHVACCurrentStateTicker.attach_ms(TIMER_HVAC_UPDATE, reqHVACCurrentState);
   _getCurrentTempTicker.attach_ms(TIMER_GET_TEMP, getCurrentTemp);
-  _lastCurrentState.currentInpOutState = 0xFF;
+  _lastCurrentState.ioState = 0xFF;
   _lastCurrentState.dacOutVoltage = 0xFFFF;
 }
 
@@ -438,16 +499,25 @@ void loop() {
 
   displayTime();
 //  checkBatCondition();
-  if (_getCurrentTempFlag == 1){
-    _getCurrentTempFlag = 2;
-    dsReqTemperature();
-  }
+  // if (_getCurrentTempFlag == 1){
+  //   _getCurrentTempFlag = 2;
+  //   dsReqTemperature();
+  // }
 
-  if (_getCurrentTempFlag == 2 && dsGetTemperature()){
+  // if (_getCurrentTempFlag == 2 && dsGetTemperature()){
+  //   _getCurrentTempFlag = 0;
+  //   displayCurrentTemp();
+  //   if (_currentState.reqTemperature == 0xFF)
+  //     _currentState.reqTemperature = _currentState.roomTemperature;
+  // }
+
+  if (_getCurrentTempFlag ==1){
     _getCurrentTempFlag = 0;
+    shtGetParameters();
     displayCurrentTemp();
+    if (_currentState.reqTemperature == 0xFF)
+      _currentState.reqTemperature = _currentState.roomTemperature;
   }
-
   netService(receivedBuffer);
   processTcpDataReq(receivedBuffer);
   updateWiFiState();
@@ -501,6 +571,8 @@ void loop() {
   if (manAutoTButton.wasPressed()){
     vibrate();
     _autoMode = !_autoMode;
+    displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
+    redrawAutoManMode();
   }
 
   if (manAutoTButton.wasReleased()){
