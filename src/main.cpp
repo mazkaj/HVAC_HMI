@@ -11,6 +11,7 @@ uint8_t _configuration;
 M5GFX gfx;
 Ticker _reqHVACCurrentStateTicker;
 Ticker _getCurrentTempTicker;
+Ticker _hmiDimmerTicker;
 
 uint8_t _lastWiFiIconType = 0;
 uint8_t _lastBatLevel = 0;
@@ -18,6 +19,8 @@ uint8_t _lastConnectionState = WIFI_IDLE;
 uint8_t _getCurrentTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
 uint8_t  _getCurrentHvacStateFlag = 0;
 uint8_t _getCurrentTempFlag = 0;
+uint8_t _hmiDimmValue = 100;
+uint8_t _setHmiDimm = 1;
 int16_t _gapoTempValue;
 currentState_t _lastCurrentState;
 bool _reDrawImageButtons = false;
@@ -466,13 +469,19 @@ void getCurrentTemp(){
     _getCurrentTempFlag = 1;
 }
 
+void hmiDimmerTick(){
+  if (_hmiDimmValue > 25){
+    _hmiDimmValue -= 25;
+    _setHmiDimm = 1;
+  }
+}
+
 void setup(){
   
   Serial.begin(115200);
   M5.begin();
   gfx.begin();
   M5.Rtc.begin();
-  gfx.setBrightness(25);
   WiFi.mode(WIFI_STA);
   gfx.clear(DISP_BACK_COLOR);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
@@ -491,6 +500,7 @@ void setup(){
   readConfiguration();
   _reqHVACCurrentStateTicker.attach_ms(TIMER_HVAC_UPDATE, reqHVACCurrentState);
   _getCurrentTempTicker.attach_ms(TIMER_GET_TEMP, getCurrentTemp);
+  _hmiDimmerTicker.attach(10, hmiDimmerTick);
   _lastCurrentState.ioState = 0xFF;
   _lastCurrentState.dacOutVoltage = 0xFFFF;
 }
@@ -512,6 +522,10 @@ void loop() {
   //   if (_currentState.reqTemperature == 0xFF)
   //     _currentState.reqTemperature = _currentState.roomTemperature;
   // }
+  if (_setHmiDimm == 1){
+    gfx.setBrightness(_hmiDimmValue);
+    _setHmiDimm = 0;
+  }
 
   if (_getCurrentTempFlag ==1){
     _getCurrentTempFlag = 0;
@@ -580,14 +594,11 @@ void loop() {
   if (manAutoTButton.wasReleased()){
     _reDrawImageButtons = true;
   }
-// if (M5.Touch.changed){
-  //   Point pressedPoint = M5.Touch.getPressPoint();
-  //   if (pressedPoint.in(lightImageZone))
-  //     toggleOutputState();
-  //   if (pressedPoint.in(lockImageZone))
-  //     toggleLockState();
-  //   if (pressedPoint.in(autoModeImageZone) && !isFlagCurrentState(PAN_TCP_RSWITCH_AUTO))
-  //     autoMode();
-  //  }
+  if (M5.Touch.changed){
+    if (_hmiDimmValue < 100){
+      _hmiDimmValue = 100;
+      _setHmiDimm = 1;
+    }
+  }
   delay(1);
 }

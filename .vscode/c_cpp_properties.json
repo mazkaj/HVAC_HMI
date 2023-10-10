@@ -481,7 +481,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=60110",
+                "PLATFORMIO=60111",
                 "ARDUINO_M5STACK_Core2",
                 "BOARD_HAS_PSRAM",
                 "HAVE_CONFIG_H",
