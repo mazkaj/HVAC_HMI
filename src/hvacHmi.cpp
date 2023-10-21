@@ -109,3 +109,40 @@ void shtGetParameters(){
     Serial.printf("Temperature = %f\n", _currentState.roomTemperature);
     Serial.printf("Humidity = %f\n", _currentState.roomHumidity);
 }
+
+void adjustTemperature(){
+
+    float divTemperature;
+    if (isFlagCurrentState(HVAC_IS_HEATING)){
+      divTemperature = _currentState.reqTemperature - _currentState.roomTemperature;
+    }else{
+      divTemperature = _currentState.roomTemperature - _currentState.reqTemperature;
+    }
+
+    if (divTemperature < 0)
+      rsSendSetDACVoltage(0);
+    else if (divTemperature > 5)
+      rsSendSetDACVoltage(10000);
+    else if (divTemperature > 4.5)
+      rsSendSetDACVoltage(9000);
+    else if (divTemperature > 4.0)
+      rsSendSetDACVoltage(8000);
+    else if (divTemperature > 3.5)
+      rsSendSetDACVoltage(7000);
+    else if (divTemperature > 3.0)
+      rsSendSetDACVoltage(6000);
+    else if (divTemperature > 2.5)
+      rsSendSetDACVoltage(5000);
+    else if (divTemperature > 2.0)
+      rsSendSetDACVoltage(4000);
+    else if (divTemperature > 1.5)
+      rsSendSetDACVoltage(3000);
+    else if (divTemperature > 1.0)
+      rsSendSetDACVoltage(2000);
+    else if (divTemperature > 0.5)
+      rsSendSetDACVoltage(1000);
+    else
+      rsSendSetDACVoltage(0);
+
+
+}

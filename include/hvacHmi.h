@@ -9,4 +9,5 @@ void dsReqTemperature();
 bool dsGetTemperature();
 void initSHT40();
 void shtGetParameters();
+void adjustTemperature();
 #endif

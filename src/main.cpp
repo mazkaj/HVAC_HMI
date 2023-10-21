@@ -531,6 +531,9 @@ void loop() {
     _getCurrentTempFlag = 0;
     shtGetParameters();
     displayCurrentTemp();
+    if (_autoMode){
+      adjustTemperature();
+    }
     if (_currentState.reqTemperature == 0xFF)
       _currentState.reqTemperature = _currentState.roomTemperature;
   }
