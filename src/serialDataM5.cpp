@@ -18,7 +18,7 @@ uint8_t processDataFromHVAC(){
         if (charsAvailable > RS_HVACBUFFER_SIZE)
             charsAvailable = RS_HVACBUFFER_SIZE;
         uint8_t receivedBytes = uartToM5Stack.read(receivedBuffer, charsAvailable);
-        Serial.printf("RS received bytes = %d : ", receivedBytes);
+        //Serial.printf("RS received bytes = %d : ", receivedBytes);
         return analizeReceivedData(receivedBuffer, receivedBytes);
     }
     return 0;
@@ -38,7 +38,7 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
     _currentState.hvacWiFiSSID = "";
     while (iChar < receivedBytes){
 
-        Serial.printf("%02X ", receivedBuffer[iChar]);
+//        Serial.printf("%02X ", receivedBuffer[iChar]);
 
         if (receivedBuffer[iChar] == ETX && posInPacket == 20)
             break;
@@ -66,7 +66,7 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
         posInPacket++;
         iChar++;
     }
-    Serial.print("\n");
+  //  Serial.print("\n");
 
     if (iChar == receivedBytes) //no ETX
         return 0;
@@ -81,11 +81,11 @@ void rsSendSetDACVoltage(uint16_t setVoltage){
     rsSendBuffer[2] = (uint8_t)(setVoltage >> 8);
     rsSendBuffer[3] = (uint8_t)(setVoltage);
     rsSendBuffer[4] = ETX;
-    Serial.printf("rsSendSetDACVoltage = %d\n", setVoltage);
+/*    Serial.printf("rsSendSetDACVoltage = %d\n", setVoltage);
     for (int i = 0; i < RS_BUFFER_SIZE; i++)
         Serial.printf("%02X ", rsSendBuffer[i]);
     Serial.print("\n");
-    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+ */    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }
 
 void rsSendSetHCState(uint8_t hcState){

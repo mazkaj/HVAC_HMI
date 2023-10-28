@@ -12,6 +12,7 @@ M5GFX gfx;
 Ticker _reqHVACCurrentStateTicker;
 Ticker _getCurrentTempTicker;
 Ticker _hmiDimmerTicker;
+Ticker _tcpPANUpdateTicker;
 
 uint8_t _lastWiFiIconType = 0;
 uint8_t _lastBatLevel = 0;
@@ -19,6 +20,7 @@ uint8_t _lastConnectionState = WIFI_IDLE;
 uint8_t _getCurrentTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
 uint8_t  _getCurrentHvacStateFlag = 0;
 uint8_t _getCurrentTempFlag = 0;
+uint8_t _updatePANFlag = 0;
 uint8_t _hmiDimmValue = 100;
 uint8_t _setHmiDimm = 1;
 int16_t _gapoTempValue;
@@ -464,6 +466,10 @@ void reqHVACCurrentState(){
   _getCurrentHvacStateFlag = 1;
 }
 
+void reqUpdatePAN(){
+  _updatePANFlag = 1;
+}
+
 void getCurrentTemp(){
   if (_getCurrentTempFlag == 0)
     _getCurrentTempFlag = 1;
@@ -501,6 +507,7 @@ void setup(){
   _reqHVACCurrentStateTicker.attach_ms(TIMER_HVAC_UPDATE, reqHVACCurrentState);
   _getCurrentTempTicker.attach_ms(TIMER_GET_TEMP, getCurrentTemp);
   _hmiDimmerTicker.attach(10, hmiDimmerTick);
+  _tcpPANUpdateTicker.attach_ms(TIMER_UPDATE_PAN, reqUpdatePAN);
   _lastCurrentState.ioState = 0xFF;
   _lastCurrentState.dacOutVoltage = 0xFFFF;
 }
@@ -541,9 +548,16 @@ void loop() {
   processTcpDataReq(receivedBuffer);
   updateWiFiState();
   if (processDataFromHVAC() > 0){
-    if (_currentState.validDataHVAC == DATAHVAC_TCPREQ)
+    if (_currentState.validDataHVAC == DATAHVAC_TCPREQ){
       sendCurrentStateToPAN();
+      _updatePANFlag = 0;
+    }
     updateDisplayHvacData();
+  }
+
+  if (_updatePANFlag == 1){
+    _updatePANFlag = 0;
+    sendCurrentStateToPAN();
   }
 
   if (_getCurrentHvacStateFlag == 1){

@@ -21,6 +21,7 @@
 #define TIMER_HVAC_UPDATE   500      //ms
 #define TIMER_GET_TEMP      1000      //ms
 #define TIMEOUT_TCP_ANSWER   100    //ms
+#define TIMER_UPDATE_PAN    5000    //ms
 
 #define TIMEFLAG_WAITFORMIDNIGHT    0
 #define TIMEFLAG_REQUIREPANTIME     1
