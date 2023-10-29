@@ -6,6 +6,7 @@
 #include "DallasTemperature.h"
 #include "DFRobot_SHT40.h"
 
+extern bool _autoMode;
 currentState_t _currentState;
 nodeConfig_t _nodeConfig;
 
@@ -30,6 +31,8 @@ void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 1] = (byte)(_currentState.dacOutVoltage >> 8);
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 2] = (byte)(_currentState.dacOutVoltage);
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
+    if (_autoMode)
+      tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= (1 << 4);
     sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
     Serial.printf("sendCurrentState to %02X %02X\n", recipientAddress0, recipientAddress1);
     _currentState.validDataHVAC = DATAHVAC_VALID;
@@ -58,6 +61,10 @@ void processTcpDataReq(uint8_t *receivedBuffer){
       break;
     case HVAC_CMD_COOL_HEAT:
       rsSendSetHCState(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      _currentState.validDataHVAC = DATAHVAC_TCPREQ;
+      break;
+    case HVAC_CMD_AUTO_MAN:
+      _autoMode = (receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 1);
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
   }
