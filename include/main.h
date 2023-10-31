@@ -46,6 +46,7 @@ typedef struct
     String hvacWiFiSSID;
     uint8_t hvacipAddress;
     uint8_t hvacTcpIndexInConnTable;
+    uint32_t idSHT;
 } currentState_t;
 
 typedef struct
@@ -84,6 +85,9 @@ void clearFlagCurrentState(uint8_t flagToClear);
 bool isFlagCurrentState(uint8_t flagToCheck);
 int16_t temperatBMEBytesToInt(uint8_t highByte, uint8_t lowByte);
 void reqHVACCurrentState();
+void setReqTemperature(uint8_t reqTemperature);
+void switchAutoManMode();
+void reDrawImageButtons();
 void refreshCurrentState();
 void setup();
 void loop();

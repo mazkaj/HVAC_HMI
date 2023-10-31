@@ -7,6 +7,7 @@
 #include "DFRobot_SHT40.h"
 
 extern bool _autoMode;
+
 currentState_t _currentState;
 nodeConfig_t _nodeConfig;
 
@@ -22,7 +23,7 @@ void sendCurrentStateToPAN(){
 }
 
 void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
-    uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 4];
+    uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 8];
     wifiState_t wifiState;
     getWiFiState(&wifiState);
     tcpSendBuffer[eTcpPacketPosRecipientAddr0] = recipientAddress0;
@@ -33,6 +34,11 @@ void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
     if (_autoMode)
       tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= (1 << 4);
+    tcpSendBuffer[eTcpPacketPosStartPayLoad + 4] = ((uint16_t)(_currentState.roomTemperature * 100) >> 8);
+    tcpSendBuffer[eTcpPacketPosStartPayLoad + 5] = (uint8_t)(_currentState.roomTemperature * 100);
+    tcpSendBuffer[eTcpPacketPosStartPayLoad + 6] = (uint8_t)_currentState.roomHumidity;
+    tcpSendBuffer[eTcpPacketPosStartPayLoad + 7] = _currentState.reqTemperature;
+
     sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
     Serial.printf("sendCurrentState to %02X %02X\n", recipientAddress0, recipientAddress1);
     _currentState.validDataHVAC = DATAHVAC_VALID;
@@ -64,8 +70,17 @@ void processTcpDataReq(uint8_t *receivedBuffer){
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
     case HVAC_CMD_AUTO_MAN:
-      _autoMode = (receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 1);
+      if (receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 2)
+        _autoMode = !_autoMode;
+      else
+        _autoMode = (receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 1);
+      switchAutoManMode();
+      reDrawImageButtons();
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
+      break;
+      case HVAC_CMD_SET_TEMPERATURE:
+        setReqTemperature(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+        _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
   }
 }
@@ -102,19 +117,23 @@ bool dsGetTemperature(){
 
 void initSHT40(){
     _sensorSHT40.begin();
-    while((_idSHT = _sensorSHT40.getDeviceID()) == 0){
+    uint8_t numTryInitSHT = 3;
+    while((_currentState.idSHT = _sensorSHT40.getDeviceID()) == 0 && numTryInitSHT > 0){
       Serial.println("ID retrieval error, please check whether the device is connected correctly!!!");
       delay(500);
+      numTryInitSHT--;
     }
   Serial.print("SHT id :0x"); 
-  Serial.println(_idSHT, HEX);
+  Serial.println(_currentState.idSHT, HEX);
 }
 
 void shtGetParameters(){
-    _currentState.roomTemperature = _sensorSHT40.getTemperature(PRECISION_LOW);
-    _currentState.roomHumidity = _sensorSHT40.getHumidity(PRECISION_LOW);
-    Serial.printf("Temperature = %f\n", _currentState.roomTemperature);
-    Serial.printf("Humidity = %f\n", _currentState.roomHumidity);
+    if (_currentState.idSHT > 0){
+      _currentState.roomTemperature = _sensorSHT40.getTemperature(PRECISION_LOW);
+      _currentState.roomHumidity = _sensorSHT40.getHumidity(PRECISION_LOW);
+      Serial.printf("Temperature = %f\n", _currentState.roomTemperature);
+      Serial.printf("Humidity = %f\n", _currentState.roomHumidity);
+    }
 }
 
 void adjustTemperature(){

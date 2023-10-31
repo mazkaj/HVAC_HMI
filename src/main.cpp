@@ -208,10 +208,12 @@ void displayReqTemperature(){
 }
 
 void displayCurrentTemp(){
-  gfx.setCursor(196, 2);
-  gfx.setFont(&prototype22pt7b);
-  gfx.printf("%3.1f  ", _currentState.roomTemperature);
-  gfx.drawPng(homeTemperature32, ~0u, 288, 4);
+  if (_currentState.idSHT > 0){
+    gfx.setCursor(196, 2);
+    gfx.setFont(&prototype22pt7b);
+    gfx.printf("%3.1f  ", _currentState.roomTemperature);
+    gfx.drawPng(homeTemperature32, ~0u, 288, 4);
+  }
 }
 
 void displayTime(){
@@ -398,6 +400,11 @@ void incDACVoltage(){
   }
 }
 
+void setReqTemperature(uint8_t reqTemperature){
+    _currentState.reqTemperature = reqTemperature;
+    displayReqTemperature();
+}
+
 void incReqTemperature(){
   if (_currentState.reqTemperature < 30){
     _currentState.reqTemperature++;
@@ -462,6 +469,14 @@ void switchHeatCoolTButtonPressed(){
     rsSendSetHCState(1);
 }
 
+void switchAutoManMode(){
+    displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
+    redrawAutoManMode();
+}
+
+void reDrawImageButtons(){
+    _reDrawImageButtons = true;
+}
 void reqHVACCurrentState(){
   _getCurrentHvacStateFlag = 1;
 }
@@ -491,11 +506,15 @@ void setup(){
   WiFi.mode(WIFI_STA);
   gfx.clear(DISP_BACK_COLOR);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
-  gfx.drawPng(homeTemperature32, ~0u, 288, 4);
   _netNodeParam.nodeAddrType = ADDR_HVACHMI;
   _netNodeParam.tcpNodeType = tcpNodeTypeHVACDispEnum;
   //initDS18B20();
   initSHT40();
+  if (_currentState.idSHT > 0)
+    gfx.drawPng(homeTemperature32, ~0u, 288, 4);
+  else
+    gfx.drawPng(homeTemperatureWarning32, ~0u, 288, 4);
+
   initNetwork();
   initSerialDataM5Stack();
   initButtons();
@@ -604,12 +623,11 @@ void loop() {
   if (manAutoTButton.wasPressed()){
     vibrate();
     _autoMode = !_autoMode;
-    displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
-    redrawAutoManMode();
+    switchAutoManMode();
   }
 
   if (manAutoTButton.wasReleased()){
-    _reDrawImageButtons = true;
+    reDrawImageButtons();
   }
   if (M5.Touch.changed){
     if (_hmiDimmValue < 100){

@@ -11,6 +11,7 @@
 #include "heatwave48.h"
 #include "freezingTemp48.h"
 #include "homeTemperature32.h"
+#include "homeTemperatureWarning32.h"
 #include "autoMode48.h"
 #include "manualMode48.h"
 #include "celciusSign32.h"
