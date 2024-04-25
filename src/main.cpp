@@ -2,6 +2,7 @@
 #include <netService.h>
 #include <sdService.h>
 #include "SerialDataM5.h"
+#include "hvacHmi.h"
 
 extern currentState_t _currentState;
 extern netNodeParameter_t _netNodeParam;
@@ -322,19 +323,12 @@ void showIpAddressAndSSID(wifiState_t wifiState){
   gfx.setFont(WIFI_STATUS_FONT);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   char buff[19];
-  if (wifiState.tcpIndexInConnectionTable < TCP_CONNECTION_SIZE)
-    sprintf(buff, "%d.%d.%d.%d:%d", wifiState.ipAddress[0], 
-                                    wifiState.ipAddress[1], 
-                                    wifiState.ipAddress[2], 
-                                    wifiState.ipAddress[3], 
-                                    wifiState.tcpIndexInConnectionTable);
-  else
-    sprintf(buff, "%d.%d.%d.%d:??", wifiState.ipAddress[0], 
+    sprintf(buff, "%d.%d.%d.%d", wifiState.ipAddress[0], 
                                     wifiState.ipAddress[1], 
                                     wifiState.ipAddress[2], 
                                     wifiState.ipAddress[3]);
-  gfx.setCursor(145, 223);
-  gfx.printf("%18s", buff);
+  gfx.setCursor(155, 223);
+  gfx.printf("%16s", buff);
 
   gfx.setCursor(175, 208);
   gfx.printf("%14s", wifiState.ssid);
@@ -347,7 +341,11 @@ void showTcpConnectionState(wifiState_t wifiState){
   gfx.fillRect(305, 223, 16, 16, DISP_BACK_COLOR);
 
   if (wifiState.connectionState == WIFI_TCPREGISTERED || 
-      wifiState.connectionState == WIFI_TCPCONNECTED)
+      wifiState.connectionState == WIFI_TCPCONNECTED ||
+      wifiState.connectionState == WIFI_TCPTIMEOUT_NOANSWER || 
+      wifiState.connectionState == WIFI_TCPWAITINGFORANSWER || 
+      wifiState.connectionState == WIFI_TCPRECEIVEDDATA
+      )
     gfx.drawPng(plug16, ~0u, 305, 223);
   else
     gfx.drawPng(cross, ~0u, 305, 223);
@@ -367,7 +365,11 @@ void showWiFiState(wifiState_t wifiState){
   if (wifiState.connectionState == WIFI_CONNECTED ||
       wifiState.connectionState == WIFI_TCPCONNECTING ||
       wifiState.connectionState == WIFI_TCPCONNECTED ||
-      wifiState.connectionState == WIFI_TCPREGISTERED){
+      wifiState.connectionState == WIFI_TCPREGISTERED || 
+      wifiState.connectionState == WIFI_TCPTIMEOUT_NOANSWER || 
+      wifiState.connectionState == WIFI_TCPWAITINGFORANSWER || 
+      wifiState.connectionState == WIFI_TCPRECEIVEDDATA
+      ){
     showIpAddressAndSSID(wifiState);
     showWiFiStrength(wifiState.rssi);
     showNodeName();
@@ -567,16 +569,16 @@ void loop() {
   processTcpDataReq(receivedBuffer);
   updateWiFiState();
   if (processDataFromHVAC() > 0){
-    if (_currentState.validDataHVAC == DATAHVAC_TCPREQ){
-      sendCurrentStateToPAN();
+    if (_currentState.validDataHVAC == DATAHVAC_TCPREQ && netServiceReadyToSendNextPacket()){
+      sendCurrentStateToServer();
       _updatePANFlag = 0;
     }
     updateDisplayHvacData();
   }
 
-  if (_updatePANFlag == 1){
+  if (_updatePANFlag == 1 && netServiceReadyToSendNextPacket()){
     _updatePANFlag = 0;
-    sendCurrentStateToPAN();
+    sendCurrentStateToServer();
   }
 
   if (_getCurrentHvacStateFlag == 1){

@@ -1,1 +1,1 @@
-C:/DCC/ESP32/Common/DFRobot_SHT40.cpp
+c:/dcc/esp32/common/DFRobot_SHT40.cpp

@@ -1,7 +1,7 @@
 #ifndef __HVACHMI_H
 	#define	__HVACHMI_H
 
-void sendCurrentStateToPAN();
+void sendCurrentStateToServer();
 void sendCurrentState(byte recipientAddress0, byte recipientAddress1);
 void processTcpDataReq(uint8_t *receivedBuffer);
 void initDS18B20();

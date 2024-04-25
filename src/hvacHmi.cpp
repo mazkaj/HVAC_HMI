@@ -18,8 +18,20 @@ DeviceAddress _thermometerAddress;
 DFRobot_SHT40 _sensorSHT40(SHT40_AD1B_IIC_ADDR);
 uint32_t _idSHT = 0;
 
-void sendCurrentStateToPAN(){
-   sendCurrentState(0, 0);
+void sendCurrentStateToServer(){
+  uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 8];
+  setAsRecipientServerIPAddress(tcpSendBuffer);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad] = getTcpIndexInConnTable();
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 1] = (byte)(_currentState.dacOutVoltage >> 8);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 2] = (byte)(_currentState.dacOutVoltage);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
+  if (_autoMode)
+    tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= (1 << 4);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 4] = ((uint16_t)(_currentState.roomTemperature * 100) >> 8);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 5] = (uint8_t)(_currentState.roomTemperature * 100);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 6] = (uint8_t)_currentState.roomHumidity;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 7] = _currentState.reqTemperature;
+  sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
 }
 
 void sendCurrentState(byte recipientAddress0, byte recipientAddress1){

@@ -9,7 +9,6 @@
 #include "myMiWiProtocol.h"
 #include <graphics.h>
 #include "netService.h"
-#include "hvacHmi.h"
 
 #define DISP_BACK_COLOR     TFT_WHITE
 #define DISP_TEXT_COLOR     TFT_BLACK
