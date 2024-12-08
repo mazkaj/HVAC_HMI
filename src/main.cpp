@@ -27,7 +27,6 @@ uint8_t _setHmiDimm = 1;
 int16_t _gapoTempValue;
 currentState_t _lastCurrentState;
 bool _reDrawImageButtons = false;
-bool _autoMode = false;
 
 Zone offImageZone = Zone(240,120,64,64);
 Zone maxImageZone = Zone(10,120,64,64);
@@ -62,7 +61,7 @@ void drawMaxImageZone(){
 
 void drawManAutoImageZone(){
    gfx.fillRect(16, 56, 48, 48, TFT_LIGHTGRAY);
-   if (_autoMode)
+   if (_currentState.autoMode)
       gfx.drawPng(autoMode48, ~0u, 16, 56);
    else
       gfx.drawPng(manualMode48, ~0u, 16, 56);
@@ -70,7 +69,7 @@ void drawManAutoImageZone(){
 
 void redrawAutoManMode(){
     gfx.fillRect(136, 56, 98, 42, LIGHTGREY);
-    if (_autoMode){
+    if (_currentState.autoMode){
       gfx.drawPng(celciusSign32, ~0u, 192, 67);
       displayReqTemperature();
     }else{
@@ -181,7 +180,7 @@ void drawCoolHeatIcon(){
 
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage){
   int bgColor = DISP_BACK_COLOR;
-  if (_autoMode){
+  if (_currentState.autoMode){
     gfx.setCursor(125, 204);
     gfx.setFont(&fonts::efontCN_24_b);
   }else{
@@ -416,7 +415,7 @@ void incReqTemperature(){
 
 void intensityIncButtonPressed(){
   vibrate();
-  if (_autoMode)
+  if (_currentState.autoMode)
     incReqTemperature();
   else
     incDACVoltage();
@@ -441,7 +440,7 @@ void decReqTemperature(){
 
 void intensityDecButtonPressed(){
   vibrate();
-  if (_autoMode)
+  if (_currentState.autoMode)
     decReqTemperature();
   else
     decDACVoltage();
@@ -450,7 +449,7 @@ void intensityDecButtonPressed(){
 void setMaxPowerTButtonPressed(){
   vibrate();
   rsSendSetDACVoltage(10000);
-  _autoMode = false;
+  _currentState.autoMode = false;
   displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
   redrawAutoManMode();
 }
@@ -458,7 +457,7 @@ void setMaxPowerTButtonPressed(){
 void setOffPowerTButtonPressed(){
   vibrate();
   rsSendSetDACVoltage(0);
-  _autoMode = false;
+  _currentState.autoMode = false;
   displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
   redrawAutoManMode();
 }
@@ -559,7 +558,7 @@ void loop() {
     _getCurrentTempFlag = 0;
     shtGetParameters();
     displayCurrentTemp();
-    if (_autoMode){
+    if (_currentState.autoMode){
       adjustTemperature();
     }
     if (_currentState.reqTemperature == 0xFF)
@@ -624,7 +623,7 @@ void loop() {
 
   if (manAutoTButton.wasPressed()){
     vibrate();
-    _autoMode = !_autoMode;
+    _currentState.autoMode = !_currentState.autoMode;
     switchAutoManMode();
   }
 

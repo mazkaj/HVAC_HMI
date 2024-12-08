@@ -63,6 +63,9 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
         if (posInPacket == 19)
             _currentState.hvacipAddress = receivedBuffer[iChar];
 
+        if (posInPacket == 20)
+            _currentState.fxFanSpeed = receivedBuffer[iChar];
+
         posInPacket++;
         iChar++;
     }
@@ -97,6 +100,17 @@ void rsSendSetHCState(uint8_t hcState){
     rsSendBuffer[4] = ETX;
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }
+
+void rsSendSetFlexitFanSpeed(uint8_t fxFanSpeed){
+    uint8_t rsSendBuffer[RS_BUFFER_SIZE];
+    rsSendBuffer[0] = STX;
+    rsSendBuffer[1] = HVAC_CMD_SETFANSPEED;
+    rsSendBuffer[2] = 0;
+    rsSendBuffer[3] = fxFanSpeed;
+    rsSendBuffer[4] = ETX;
+    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+}
+
 
 void rsSendGetCurrentState(){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];

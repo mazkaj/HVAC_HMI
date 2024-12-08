@@ -6,8 +6,6 @@
 #include "DallasTemperature.h"
 #include "DFRobot_SHT40.h"
 
-extern bool _autoMode;
-
 currentState_t _currentState;
 nodeConfig_t _nodeConfig;
 
@@ -25,12 +23,13 @@ void sendCurrentStateToServer(){
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 1] = (byte)(_currentState.dacOutVoltage >> 8);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 2] = (byte)(_currentState.dacOutVoltage);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
-  if (_autoMode)
+  if (_currentState.autoMode)
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= (1 << 4);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 4] = ((uint16_t)(_currentState.roomTemperature * 100) >> 8);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 5] = (uint8_t)(_currentState.roomTemperature * 100);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 6] = (uint8_t)_currentState.roomHumidity;
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 7] = _currentState.reqTemperature;
+  Serial.printf("%d: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC, tcpSendBuffer[eTcpPacketPosRecipientAddr0],  tcpSendBuffer[eTcpPacketPosRecipientAddr1]);
   sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
 }
 
@@ -44,7 +43,7 @@ void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 1] = (byte)(_currentState.dacOutVoltage >> 8);
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 2] = (byte)(_currentState.dacOutVoltage);
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
-    if (_autoMode)
+    if (_currentState.autoMode)
       tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= (1 << 4);
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 4] = ((uint16_t)(_currentState.roomTemperature * 100) >> 8);
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 5] = (uint8_t)(_currentState.roomTemperature * 100);
@@ -52,7 +51,7 @@ void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
     tcpSendBuffer[eTcpPacketPosStartPayLoad + 7] = _currentState.reqTemperature;
 
     sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
-    Serial.printf("sendCurrentState to %02X %02X\n", recipientAddress0, recipientAddress1);
+    Serial.printf("%d: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC, recipientAddress0, recipientAddress1);
     _currentState.validDataHVAC = DATAHVAC_VALID;
 }
 
@@ -83,9 +82,9 @@ void processTcpDataReq(uint8_t *receivedBuffer){
       break;
     case HVAC_CMD_AUTO_MAN:
       if (receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 2)
-        _autoMode = !_autoMode;
+        _currentState.autoMode = !_currentState.autoMode;
       else
-        _autoMode = (receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 1);
+        _currentState.autoMode = (receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 1);
       switchAutoManMode();
       reDrawImageButtons();
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;

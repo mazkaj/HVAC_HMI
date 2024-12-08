@@ -46,6 +46,8 @@ typedef struct
     uint8_t hvacipAddress;
     uint8_t hvacTcpIndexInConnTable;
     uint32_t idSHT;
+    uint8_t fxFanSpeed;
+    bool autoMode = false;
 } currentState_t;
 
 typedef struct
