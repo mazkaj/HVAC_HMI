@@ -3,6 +3,7 @@
 #include <sdService.h>
 #include "SerialDataM5.h"
 #include "hvacHmi.h"
+#include "flexit.h"
 
 extern currentState_t _currentState;
 extern netNodeParameter_t _netNodeParam;
@@ -38,6 +39,7 @@ Button setMaxPowerTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
 Button setOffPowerTButton(240, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
 Button switchHeatCoolTButton(83, 48, 152, 66, false, "", {LIGHTGREY, BLACK, BLACK});
 Button manAutoTButton(3, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
+Button fxFanSpeed(240, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
 
 void initButtons(){
    intensityIncTButton.setFreeFont(&dodger320pt7b);
@@ -109,20 +111,29 @@ void applyReceivedData(){
 void updateDisplayHvacData(){
   if (_currentState.ioState != _lastCurrentState.ioState){
     _lastCurrentState.ioState = _currentState.ioState;
-    drawFlexItFanIcon();
     drawCoolHeatIcon();
     redrawAutoManMode();
     displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
   }
+
+  if (_currentState.fxFanSpeed != _lastCurrentState.fxFanSpeed
+       || _currentState.fxDataState & FXStepNoCorrectAnswer){
+    _lastCurrentState.fxFanSpeed = _currentState.fxFanSpeed;
+    _lastCurrentState.fxDataState = _currentState.fxDataState;
+    drawFlexItFanIcon();
+  }
+
   if (_currentState.dacOutVoltage != _lastCurrentState.dacOutVoltage){
     _lastCurrentState.dacOutVoltage = _currentState.dacOutVoltage;
     displayDacOutVoltage(DISP_TEXT_COLOR, _currentState.dacOutVoltage);
   }
+
   if (_reDrawImageButtons){
     drawMaxImageZone();
     drawOffImageZone();
     drawCoolHeatIcon();
     drawManAutoImageZone();
+    drawFlexItFanIcon();
     _reDrawImageButtons = false;
   }
   displayHvacWiFiInfo();
@@ -139,32 +150,38 @@ void displayHvacWiFiInfo(){
 }
 
 void drawFlexItFanIcon(){
-  uint8_t posYImage = 48;
-  uint8_t posXImage = 242;
-  gfx.fillRect(posXImage, posYImage, 64, 64, DISP_BACK_COLOR);
-  gfx.setCursor(posXImage + 47, posYImage + 5);
+  uint8_t posYImage = 58;
+  uint8_t posXImage = 254;
+  gfx.fillRect(posXImage, posYImage, 48, 48, LIGHTGREY);
+  gfx.setCursor(posXImage + 34, posYImage);
   gfx.setFont(&fonts::efontCN_16_b);
-  gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
+  gfx.setTextColor(DISP_TEXT_COLOR, LIGHTGREY);
+
+  Serial.printf("FanSpeed = %d, FXDataState= %d\n", _currentState.fxFanSpeed, _currentState.fxDataState);
+  if (_currentState.fxDataState & FXStepNoCorrectAnswer){
+      gfx.drawPng(fanOFFCaution48, ~0u, posXImage, posYImage);
+      return;
+  }
 
   switch (_currentState.fxFanSpeed){
     case 0:
-      gfx.drawPng(fanPowerOff64, ~0u, posXImage, posYImage);
+      gfx.drawPng(fanOFF48, ~0u, posXImage, posYImage);
       //gfx.setTextColor(TFT_LIGHTGREY, DISP_BACK_COLOR);
       gfx.print("OFF");
     break;
     case 1:
-      gfx.drawPng(fanPowerMin64, ~0u, posXImage, posYImage);
-      //gfx.setTextColor(TFT_GOLD, DISP_BACK_COLOR);
+      gfx.drawPng(fanMin48, ~0u, posXImage, posYImage);
+      gfx.setTextColor(TFT_BLUE, LIGHTGREY);
       gfx.print("MIN");
     break;
     case 2:
-      gfx.drawPng(fanPowerNorm64, ~0u, posXImage, posYImage);
-      //gfx.setTextColor(TFT_DARKGREEN, DISP_BACK_COLOR);
+      gfx.drawPng(fanMid48, ~0u, posXImage, posYImage);
+      gfx.setTextColor(TFT_DARKGREEN, LIGHTGREY);
       gfx.print("MID");
     break;
     case 3:
-      gfx.drawPng(fanPowerMax64, ~0u, posXImage, posYImage);
-      gfx.setTextColor(TFT_RED, DISP_BACK_COLOR);
+      gfx.drawPng(fanMax48, ~0u, posXImage, posYImage);
+      gfx.setTextColor(TFT_RED, LIGHTGREY);
       gfx.print("MAX");
     break;
   }
@@ -239,7 +256,7 @@ void displayTime(){
 }
 
 void showRoofLightState(uint8_t gapoLuxInterval){
-  
+
 }
 
 void checkBatCondition(){
@@ -363,6 +380,7 @@ void showWiFiState(wifiState_t wifiState){
 
   lastTcpCheckCounter = wifiState.tcpCheckCounter;
   if (wifiState.connectionState == WIFI_GETNEXTCONNECTION ||
+      wifiState.connectionState == WIFI_SEARCHING ||
       wifiState.connectionState == WIFI_CONNECTING ||
       wifiState.connectionState == WIFI_STARTCHECKCONNECTION)
     showConnectingInfo(wifiState);
@@ -373,6 +391,8 @@ void showWiFiState(wifiState_t wifiState){
       wifiState.connectionState == WIFI_TCPREGISTERED || 
       wifiState.connectionState == WIFI_TCPTIMEOUT_NOANSWER || 
       wifiState.connectionState == WIFI_TCPWAITINGFORANSWER || 
+      wifiState.connectionState == WIFI_TCPSENTTOSERVER || 
+      wifiState.connectionState == WIFI_IDLE || 
       wifiState.connectionState == WIFI_TCPRECEIVEDDATA
       ){
     showIpAddressAndSSID(wifiState);
@@ -476,6 +496,15 @@ void switchHeatCoolTButtonPressed(){
     rsSendSetHCState(1);
 }
 
+void fxFanSpeedTButtonPressed(){
+  vibrate();
+  if (_currentState.fxFanSpeed < 3)
+    _currentState.fxFanSpeed++;
+  else
+    _currentState.fxFanSpeed = 0;
+  rsSendSetFlexitFanSpeed(_currentState.fxFanSpeed);
+}
+
 void switchAutoManMode(){
     displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
     redrawAutoManMode();
@@ -573,6 +602,7 @@ void loop() {
   netService(receivedBuffer);
   processTcpDataReq(receivedBuffer);
   updateWiFiState();
+
   if (processDataFromHVAC() > 0){
     if (_currentState.validDataHVAC == DATAHVAC_TCPREQ && netServiceReadyToSendNextPacket()){
       sendCurrentStateToServer();
@@ -618,6 +648,14 @@ void loop() {
     _reDrawImageButtons = true;
   }
 
+  if (fxFanSpeed.wasPressed()){
+    fxFanSpeedTButtonPressed();
+  }
+  
+  if (fxFanSpeed.wasReleased()){
+    _reDrawImageButtons = true;
+  }
+  
   if (switchHeatCoolTButton.wasPressed()){
     vibrate();
     switchHeatCoolTButtonPressed();
