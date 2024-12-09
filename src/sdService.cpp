@@ -39,6 +39,22 @@ void readConfiguration(){
                 _nodeConfig.configuration = valueString.toInt();
                 Serial.printf(" config = %d \r\n", _nodeConfig.configuration);
                 break;
+            case 1:
+                _nodeConfig.tresholdOn = valueString.toInt();
+                Serial.printf(" treshON = %d \r\n", _nodeConfig.tresholdOn);
+                break;
+            case 3:
+                _nodeConfig.tresholdOff = valueString.toInt();
+                Serial.printf(" treshOFF = %d \r\n", _nodeConfig.tresholdOff);
+                break;
+            case 5:
+                _nodeConfig.hourOn = valueString.toInt();
+                Serial.printf(" treshON = %d \r\n", _nodeConfig.hourOn);
+                break;
+            case 6:
+                _nodeConfig.hourOff = valueString.toInt();
+                Serial.printf(" treshOFF = %d \r\n", _nodeConfig.hourOff);
+                break;
 
             default:
                 break;

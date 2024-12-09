@@ -146,25 +146,27 @@ void drawFlexItFanIcon(){
   gfx.setFont(&fonts::efontCN_16_b);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
 
-  if (isFlagCurrentState(HVAC_FLEXIT_PIN4)){
-    gfx.drawPng(fanPowerOff64, ~0u, posXImage, posYImage);
-    //gfx.setTextColor(TFT_LIGHTGREY, DISP_BACK_COLOR);
-    gfx.print("OFF");
-  }else{
-    if (isFlagCurrentState(HVAC_FLEXIT_PIN5) && isFlagCurrentState(HVAC_FLEXIT_PIN6)){
+  switch (_currentState.fxFanSpeed){
+    case 0:
+      gfx.drawPng(fanPowerOff64, ~0u, posXImage, posYImage);
+      //gfx.setTextColor(TFT_LIGHTGREY, DISP_BACK_COLOR);
+      gfx.print("OFF");
+    break;
+    case 1:
       gfx.drawPng(fanPowerMin64, ~0u, posXImage, posYImage);
       //gfx.setTextColor(TFT_GOLD, DISP_BACK_COLOR);
       gfx.print("MIN");
-
-    }else if (isFlagCurrentState(HVAC_FLEXIT_PIN6)){
+    break;
+    case 2:
       gfx.drawPng(fanPowerNorm64, ~0u, posXImage, posYImage);
       //gfx.setTextColor(TFT_DARKGREEN, DISP_BACK_COLOR);
       gfx.print("MID");
-    }else{
+    break;
+    case 3:
       gfx.drawPng(fanPowerMax64, ~0u, posXImage, posYImage);
       gfx.setTextColor(TFT_RED, DISP_BACK_COLOR);
       gfx.print("MAX");
-    }
+    break;
   }
 }
 
@@ -234,6 +236,10 @@ void displayTime(){
     _currentState.getTimeFlag = TIMEFLAG_REQUIREPANTIME;
   if (_currentState.getTimeFlag  == TIMEFLAG_PANTIMERECEIVED && currentTime.Minutes != 0)
     _currentState.getTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
+}
+
+void showRoofLightState(uint8_t gapoLuxInterval){
+  
 }
 
 void checkBatCondition(){

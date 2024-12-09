@@ -40,7 +40,7 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
 
 //        Serial.printf("%02X ", receivedBuffer[iChar]);
 
-        if (receivedBuffer[iChar] == ETX && posInPacket == 20)
+        if (receivedBuffer[iChar] == ETX && posInPacket == 22)
             break;
         
         if (posInPacket == 0){
@@ -65,6 +65,9 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
 
         if (posInPacket == 20)
             _currentState.fxFanSpeed = receivedBuffer[iChar];
+
+        if (posInPacket == 21)
+            _currentState.fxDataState = receivedBuffer[iChar];
 
         posInPacket++;
         iChar++;
@@ -107,6 +110,16 @@ void rsSendSetFlexitFanSpeed(uint8_t fxFanSpeed){
     rsSendBuffer[1] = HVAC_CMD_SETFANSPEED;
     rsSendBuffer[2] = 0;
     rsSendBuffer[3] = fxFanSpeed;
+    rsSendBuffer[4] = ETX;
+    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+}
+
+void rsSendSetRoofLight(uint8_t roofLight){
+    uint8_t rsSendBuffer[RS_BUFFER_SIZE];
+    rsSendBuffer[0] = STX;
+    rsSendBuffer[1] = HVAC_CMD_ROOFLIGHT;
+    rsSendBuffer[2] = 0;
+    rsSendBuffer[3] = roofLight;
     rsSendBuffer[4] = ETX;
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }

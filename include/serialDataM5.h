@@ -3,7 +3,7 @@
 
 
 #define RS_BUFFER_SIZE  5
-#define RS_HVACBUFFER_SIZE  22
+#define RS_HVACBUFFER_SIZE  24
 
 #define STX 0x02
 #define ETX 0x03
@@ -15,6 +15,7 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes);
 void rsSendSetDACVoltage(uint16_t setVoltage);
 void rsSendSetHCState(uint8_t hcState);
 void rsSendSetFlexitFanSpeed(uint8_t hcState);
+void rsSendSetRoofLight(uint8_t roofLight);
 void rsSendGetCurrentState();
 
 #endif //__SERIALDATAM5_H

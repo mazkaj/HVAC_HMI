@@ -6,6 +6,11 @@
 #include "DallasTemperature.h"
 #include "DFRobot_SHT40.h"
 
+uint32_t calculateLUX(uint8_t highByte, uint8_t lowByte);
+void processAnswerFromServer(uint8_t *receivedBuffer);
+void putDataIntoSendBuffer(uint8_t *tcpSendBuff);
+bool isFlagConfig(uint8_t flagToCheck);
+
 currentState_t _currentState;
 nodeConfig_t _nodeConfig;
 
@@ -17,42 +22,39 @@ DFRobot_SHT40 _sensorSHT40(SHT40_AD1B_IIC_ADDR);
 uint32_t _idSHT = 0;
 
 void sendCurrentStateToServer(){
-  uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 8];
+  uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 10];
   setAsRecipientServerIPAddress(tcpSendBuffer);
   tcpSendBuffer[eTcpPacketPosStartPayLoad] = getTcpIndexInConnTable();
-  tcpSendBuffer[eTcpPacketPosStartPayLoad + 1] = (byte)(_currentState.dacOutVoltage >> 8);
-  tcpSendBuffer[eTcpPacketPosStartPayLoad + 2] = (byte)(_currentState.dacOutVoltage);
-  tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
-  if (_currentState.autoMode)
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= (1 << 4);
-  tcpSendBuffer[eTcpPacketPosStartPayLoad + 4] = ((uint16_t)(_currentState.roomTemperature * 100) >> 8);
-  tcpSendBuffer[eTcpPacketPosStartPayLoad + 5] = (uint8_t)(_currentState.roomTemperature * 100);
-  tcpSendBuffer[eTcpPacketPosStartPayLoad + 6] = (uint8_t)_currentState.roomHumidity;
-  tcpSendBuffer[eTcpPacketPosStartPayLoad + 7] = _currentState.reqTemperature;
+  putDataIntoSendBuffer(tcpSendBuffer);
   Serial.printf("%d: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC, tcpSendBuffer[eTcpPacketPosRecipientAddr0],  tcpSendBuffer[eTcpPacketPosRecipientAddr1]);
   sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
 }
 
 void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
-    uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 8];
+    uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 10];
     wifiState_t wifiState;
     getWiFiState(&wifiState);
     tcpSendBuffer[eTcpPacketPosRecipientAddr0] = recipientAddress0;
     tcpSendBuffer[eTcpPacketPosRecipientAddr1] = recipientAddress1;
     tcpSendBuffer[eTcpPacketPosStartPayLoad] = wifiState.tcpIndexInConnectionTable;
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 1] = (byte)(_currentState.dacOutVoltage >> 8);
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 2] = (byte)(_currentState.dacOutVoltage);
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
-    if (_currentState.autoMode)
-      tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= (1 << 4);
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 4] = ((uint16_t)(_currentState.roomTemperature * 100) >> 8);
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 5] = (uint8_t)(_currentState.roomTemperature * 100);
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 6] = (uint8_t)_currentState.roomHumidity;
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 7] = _currentState.reqTemperature;
-
+    putDataIntoSendBuffer(tcpSendBuffer);
     sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
     Serial.printf("%d: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC, recipientAddress0, recipientAddress1);
     _currentState.validDataHVAC = DATAHVAC_VALID;
+}
+
+void putDataIntoSendBuffer(uint8_t *tcpSendBuffer){
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 1] = (byte)(_currentState.dacOutVoltage >> 8);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 2] = (byte)(_currentState.dacOutVoltage);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
+  if (_currentState.autoMode)
+    tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= (1 << 4);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 4] = _currentState.fxFanSpeed;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 5] = _currentState.fxDataState;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 6] = ((uint16_t)(_currentState.roomTemperature * 100) >> 8);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 7] = (uint8_t)(_currentState.roomTemperature * 100);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 8] = (uint8_t)_currentState.roomHumidity;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 9] = _currentState.reqTemperature;
 }
 
 void processTcpDataReq(uint8_t *receivedBuffer){
@@ -61,6 +63,12 @@ void processTcpDataReq(uint8_t *receivedBuffer){
   if (receivedBuffer[eTcpPacketPosPacketNumber] == lastTcpPacketNumber)
     return;
   lastTcpPacketNumber = receivedBuffer[eTcpPacketPosPacketNumber];
+  
+  if (receivedBuffer[eTcpPacketPosMiWiCommand] == PAN_TCP_HVAC_A){
+    processAnswerFromServer(receivedBuffer);
+    return;
+  }
+
   if (receivedBuffer[eTcpPacketPosMiWiCommand] != PAN_TCP_HVAC)
     return;
   Serial.printf("ProcessDataReq = %d\n", receivedBuffer[eTcpPacketPosStartPayLoad + 1]);
@@ -93,6 +101,65 @@ void processTcpDataReq(uint8_t *receivedBuffer){
         setReqTemperature(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
         _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
+  }
+}
+
+void processAnswerFromServer(uint8_t *receivedBuffer){
+  _currentState.isGaPoValid = 0;
+  if (receivedBuffer[eTcpPacketPosStartPayLoad + 1] == 0xFF && receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 0xFF)
+    return;
+  _currentState.isGaPoValid = 1;
+  _currentState.gapoLuxValue = calculateLUX(receivedBuffer[eTcpPacketPosStartPayLoad + 1], receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+}
+
+uint32_t calculateLUX(uint8_t highByte, uint8_t lowByte){
+
+	uint16_t optConversion;
+	float luxValue;
+
+	optConversion = 1;
+	optConversion <<= (highByte >> 4);
+	luxValue = (float)(0.01 * optConversion);
+	optConversion = (highByte & 0x0F);
+	optConversion <<= 8;
+	optConversion += lowByte;
+	luxValue *= optConversion;
+	return (uint32_t)(rintf(luxValue));
+}
+
+void controlRoofLight(){
+  if (!isFlagConfig(CONFBIT_ROOFLIGHT))
+    return;
+
+  static uint8_t _lastGapoLuxInterval = LUX_INITIALIZE;
+  uint8_t gapoLuxInterval = 0;
+  Serial.printf("_gapoLux = %d\n", _currentState.gapoLuxValue);
+
+  if (_currentState.gapoLuxValue < _nodeConfig.tresholdOn)
+    gapoLuxInterval = LUX_SWITCH_ON;
+  else if (_currentState.gapoLuxValue > _nodeConfig.tresholdOff)
+    gapoLuxInterval = LUX_SWITCH_OFF;
+  else
+    gapoLuxInterval = LUX_BETWEEN_ON_OFF;
+
+  if (_nodeConfig.hourOn != _nodeConfig.hourOff){
+    uint8_t currentTime = _currentState.time.Hours * 6 + _currentState.time.Minutes / 10;
+    if (gapoLuxInterval == LUX_SWITCH_ON || gapoLuxInterval == LUX_BETWEEN_ON_OFF){
+      if (currentTime < _nodeConfig.hourOn && currentTime >_nodeConfig.hourOff){
+        gapoLuxInterval = LUX_SWITCH_OFF;
+      }
+    }
+  }
+
+  if (gapoLuxInterval != _lastGapoLuxInterval){
+    _lastGapoLuxInterval = gapoLuxInterval;
+    if (_lastGapoLuxInterval == LUX_SWITCH_ON){
+      rsSendSetRoofLight(1);
+    }
+    if (_lastGapoLuxInterval == LUX_SWITCH_OFF){
+      rsSendSetRoofLight(0);
+    }
+    showRoofLightState(gapoLuxInterval);
   }
 }
 
@@ -180,6 +247,9 @@ void adjustTemperature(){
       rsSendSetDACVoltage(1000);
     else
       rsSendSetDACVoltage(0);
-
-
 }
+
+bool isFlagConfig(uint8_t flagToCheck){
+  return (_nodeConfig.configuration & flagToCheck);
+}
+

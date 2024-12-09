@@ -29,6 +29,13 @@
 #define DATAHVAC_VALID             0
 #define DATAHVAC_TCPREQ            1
 
+#define CONFBIT_ROOFLIGHT   1
+
+#define LUX_INITIALIZE    0
+#define LUX_SWITCH_ON    1
+#define LUX_SWITCH_OFF   2   
+#define LUX_BETWEEN_ON_OFF  3
+
 #define WIFI_STATUS_FONT    &fonts::efontCN_16_b
 
 typedef struct
@@ -47,13 +54,20 @@ typedef struct
     uint8_t hvacTcpIndexInConnTable;
     uint32_t idSHT;
     uint8_t fxFanSpeed;
+    uint8_t fxDataState;
+    uint32_t gapoLuxValue;
+    bool isGaPoValid = 0;
     bool autoMode = false;
 } currentState_t;
 
 typedef struct
 {
     uint8_t configuration;
-    String nodeName;
+    uint16_t tresholdOn = 0;
+    uint16_t tresholdOff = 0;
+    uint8_t hourOn = 0; //as 10 minutes from midnight ie: 6:00 = 6x60 = 360 / 10 = 36
+    uint8_t hourOff = 0;
+String nodeName;
 } nodeConfig_t;
 
 void initButtons();
@@ -67,6 +81,7 @@ void drawCoolHeatIcon();
 void displayHvacWiFiInfo();
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage);
 void displayReqTemperature();
+void showRoofLightState(uint8_t gapoLuxInterval);
 void doActionSwitchOnButtonPressed();
 void doActionSwitchOffButtonPressed();
 void showStatusIcons();
