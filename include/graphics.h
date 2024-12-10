@@ -3,6 +3,8 @@
 #include "fanMid48.h"
 #include "fanOff48.h"
 #include "fanOFFCaution48.h"
+#include "secureHome32.h"
+#include "flames32.h"
 #include "freezingTemp64.h"
 #include "heatwave64.h"
 #include "speedometerBWHigh2.h"

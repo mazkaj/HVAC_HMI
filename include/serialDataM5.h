@@ -15,6 +15,8 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes);
 void rsSendSetDACVoltage(uint16_t setVoltage);
 void rsSendSetHCState(uint8_t hcState);
 void rsSendSetFlexitFanSpeed(uint8_t hcState);
+void rsSendSetFlexitAwayMode(uint8_t awayMode);
+void rsSendSetFlexitFireMode(uint8_t fireMode);
 void rsSendSetRoofLight(uint8_t roofLight);
 void rsSendGetCurrentState();
 

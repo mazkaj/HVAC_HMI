@@ -9,7 +9,10 @@
 uint32_t calculateLUX(uint8_t highByte, uint8_t lowByte);
 void processAnswerFromServer(uint8_t *receivedBuffer);
 void putDataIntoSendBuffer(uint8_t *tcpSendBuff);
+void setFlagConfig(uint8_t flagToSet);
+void clearFlagConfig(uint8_t flagToClear);
 bool isFlagConfig(uint8_t flagToCheck);
+void setRoofLight(uint8_t roofLightMode);
 
 currentState_t _currentState;
 nodeConfig_t _nodeConfig;
@@ -101,6 +104,23 @@ void processTcpDataReq(uint8_t *receivedBuffer){
         setReqTemperature(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
         _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
+    case HVAC_CMD_SETFANSPEED:
+      rsSendSetFlexitFanSpeed(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      _currentState.validDataHVAC = DATAHVAC_TCPREQ;
+    break;
+    case HVAC_CMD_ROOFLIGHT:
+      setRoofLight(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      _currentState.validDataHVAC = DATAHVAC_TCPREQ;
+    break;
+    case HVAC_CMD_AWAY:
+      rsSendSetFlexitAwayMode(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      _currentState.validDataHVAC = DATAHVAC_TCPREQ;
+    break;
+    case HVAC_CMD_FIRE:
+      rsSendSetFlexitFireMode(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      _currentState.validDataHVAC = DATAHVAC_TCPREQ;
+    break;
+
   }
 }
 
@@ -125,6 +145,15 @@ uint32_t calculateLUX(uint8_t highByte, uint8_t lowByte){
 	optConversion += lowByte;
 	luxValue *= optConversion;
 	return (uint32_t)(rintf(luxValue));
+}
+
+void setRoofLight(uint8_t roofLightMode){
+  if (roofLightMode == HVAC_AUTO){
+    setFlagConfig(CONFBIT_ROOFLIGHT);
+    return;
+  }
+  rsSendSetRoofLight(roofLightMode);
+  clearFlagConfig(CONFBIT_ROOFLIGHT);
 }
 
 void controlRoofLight(){
@@ -247,6 +276,14 @@ void adjustTemperature(){
       rsSendSetDACVoltage(1000);
     else
       rsSendSetDACVoltage(0);
+}
+
+void setFlagConfig(uint8_t flagToSet){
+  _nodeConfig.configuration |= flagToSet;
+}
+
+void clearFlagConfig(uint8_t flagToClear){
+  _nodeConfig.configuration &= ~flagToClear;
 }
 
 bool isFlagConfig(uint8_t flagToCheck){

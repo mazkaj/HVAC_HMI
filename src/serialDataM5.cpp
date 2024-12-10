@@ -114,6 +114,26 @@ void rsSendSetFlexitFanSpeed(uint8_t fxFanSpeed){
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }
 
+void rsSendSetFlexitAwayMode(uint8_t awayMode){
+    uint8_t rsSendBuffer[RS_BUFFER_SIZE];
+    rsSendBuffer[0] = STX;
+    rsSendBuffer[1] = HVAC_CMD_AWAY;
+    rsSendBuffer[2] = 0;
+    rsSendBuffer[3] = awayMode;
+    rsSendBuffer[4] = ETX;
+    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+}
+
+void rsSendSetFlexitFireMode(uint8_t fireMode){
+    uint8_t rsSendBuffer[RS_BUFFER_SIZE];
+    rsSendBuffer[0] = STX;
+    rsSendBuffer[1] = HVAC_CMD_FIRE;
+    rsSendBuffer[2] = 0;
+    rsSendBuffer[3] = fireMode;
+    rsSendBuffer[4] = ETX;
+    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+}
+
 void rsSendSetRoofLight(uint8_t roofLight){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];
     rsSendBuffer[0] = STX;

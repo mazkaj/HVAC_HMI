@@ -38,6 +38,7 @@
 
 #define WIFI_STATUS_FONT    &fonts::efontCN_16_b
 
+
 typedef struct
 {
     RTC_TimeTypeDef time;
@@ -78,6 +79,7 @@ void applyReceivedData();
 void updateDisplayHvacData();
 void drawFlexItFanIcon();
 void drawCoolHeatIcon();
+void drawAwayFireIcon();
 void displayHvacWiFiInfo();
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage);
 void displayReqTemperature();

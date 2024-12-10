@@ -112,6 +112,7 @@ void updateDisplayHvacData(){
   if (_currentState.ioState != _lastCurrentState.ioState){
     _lastCurrentState.ioState = _currentState.ioState;
     drawCoolHeatIcon();
+    drawAwayFireIcon();
     redrawAutoManMode();
     displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
   }
@@ -137,6 +138,7 @@ void updateDisplayHvacData(){
     _reDrawImageButtons = false;
   }
   displayHvacWiFiInfo();
+  
 }
 
 void displayHvacWiFiInfo(){
@@ -195,6 +197,22 @@ void drawCoolHeatIcon(){
     gfx.drawPng(freezingTemp48, ~0u, 87, 56);
   }
   displayDacOutVoltage(DISP_TEXT_COLOR, _currentState.dacOutVoltage);
+}
+
+void drawAwayFireIcon(){
+  uint8_t posYImage = 4;
+  uint8_t posXImage = 140;
+  if (_currentState.ioState & HVAC_IS_FXAWAY)
+      gfx.drawPng(secureHome32, ~0u, posXImage, posYImage);
+    else
+      gfx.fillRect(posXImage, posYImage, 32, 32, DISP_BACK_COLOR);
+
+  posYImage = 207;
+  posXImage = 140;
+  if (_currentState.ioState & HVAC_IS_FXFIRE)
+      gfx.drawPng(flames32, ~0u, posXImage, posYImage);
+    else
+      gfx.fillRect(posXImage, posYImage, 32, 32, DISP_BACK_COLOR);
 }
 
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage){
