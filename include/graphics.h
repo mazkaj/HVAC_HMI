@@ -33,6 +33,11 @@
 #include "cross.h"
 #include "nightMode32r.h"
 #include "cautionBlack32.h"
+#include "bulbOFF48.h"
+#include "bulbOffA48.h"
+#include "bulbON48.h"
+#include "bulbOnA48.h"
+#include "autoGreenSign32.h"
 
 #include "dodger320pt7b.h"
 #include "data_latin24pt7b.h"

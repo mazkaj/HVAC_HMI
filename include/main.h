@@ -74,6 +74,7 @@ String nodeName;
 void initButtons();
 void drawOffImageZone();
 void drawMaxImageZone();
+void drawRoofLightZone();
 void vibrate();
 void applyReceivedData();
 void updateDisplayHvacData();

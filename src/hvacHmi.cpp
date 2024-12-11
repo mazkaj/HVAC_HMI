@@ -10,9 +10,6 @@ uint32_t calculateLUX(uint8_t highByte, uint8_t lowByte);
 void processAnswerFromServer(uint8_t *receivedBuffer);
 void putDataIntoSendBuffer(uint8_t *tcpSendBuff);
 void setFlagConfig(uint8_t flagToSet);
-void clearFlagConfig(uint8_t flagToClear);
-bool isFlagConfig(uint8_t flagToCheck);
-void setRoofLight(uint8_t roofLightMode);
 
 currentState_t _currentState;
 nodeConfig_t _nodeConfig;
@@ -246,7 +243,7 @@ void shtGetParameters(){
 void adjustTemperature(){
 
     float divTemperature;
-    if (isFlagCurrentState(HVAC_IS_HEATING)){
+    if (isFlagCurrentState(OUTBIT_COOL1HEAT0)){
       divTemperature = _currentState.reqTemperature - _currentState.roomTemperature;
     }else{
       divTemperature = _currentState.roomTemperature - _currentState.reqTemperature;

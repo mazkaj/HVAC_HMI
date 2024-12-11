@@ -35,7 +35,8 @@ Zone lightImageZone = Zone(244,120,64,64);
 
 Button intensityIncTButton(83, 120, 75, 75, false, "+", {LIGHTGREY, BLACK, BLACK});
 Button intensityDecTButton(160, 120, 75, 75, false, "-", {LIGHTGREY, BLACK, BLACK});
-Button setMaxPowerTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
+Button setRoofLightTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
+//Button setMaxPowerTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
 Button setOffPowerTButton(240, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
 Button switchHeatCoolTButton(83, 48, 152, 66, false, "", {LIGHTGREY, BLACK, BLACK});
 Button manAutoTButton(3, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
@@ -59,6 +60,20 @@ void drawMaxImageZone(){
    //gfx.fillRect(10, 120, 64, 64, TFT_GREENYELLOW);
    gfx.drawPng(speedometerColor48, ~0u, 15, 133);
    //gfx.drawPng(speedometerBWHigh2, ~0u, 15, 128);
+}
+
+void drawRoofLightZone(){
+  if ((_nodeConfig.configuration & CONFBIT_ROOFLIGHT) && (_currentState.ioState & OUTBIT_ROOF_LIGHT)){
+    gfx.drawPng(bulbON48, ~0u, 15, 122);
+    gfx.drawPng(autoGreenSign32, ~0u, 23, 166);
+  }else if ((_nodeConfig.configuration & CONFBIT_ROOFLIGHT) && (_currentState.ioState & OUTBIT_ROOF_LIGHT) == 0){
+    gfx.drawPng(bulbOFF48, ~0u, 15, 122);
+    gfx.drawPng(autoGreenSign32, ~0u, 23, 166);
+  }else if ((_nodeConfig.configuration & CONFBIT_ROOFLIGHT) == 0 && (_currentState.ioState & OUTBIT_ROOF_LIGHT)){
+    gfx.drawPng(bulbON48, ~0u, 15, 133);
+  }else if ((_nodeConfig.configuration & CONFBIT_ROOFLIGHT) == 0 && (_currentState.ioState & OUTBIT_ROOF_LIGHT) == 0){
+    gfx.drawPng(bulbOFF48, ~0u, 15, 133);
+  }
 }
 
 void drawManAutoImageZone(){
@@ -130,7 +145,8 @@ void updateDisplayHvacData(){
   }
 
   if (_reDrawImageButtons){
-    drawMaxImageZone();
+    //drawMaxImageZone();
+    drawRoofLightZone();
     drawOffImageZone();
     drawCoolHeatIcon();
     drawManAutoImageZone();
@@ -145,7 +161,7 @@ void displayHvacWiFiInfo(){
   gfx.setFont(WIFI_STATUS_FONT);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   gfx.setCursor(2, 223);
-  gfx.printf("%d:%03d", _currentState.hvacipAddress, _currentState.hvacTcpIndexInConnTable);
+  gfx.printf("%03d:%03d", _currentState.hvacipAddress, _currentState.hvacTcpIndexInConnTable);
 
   gfx.setCursor(2, 208);
   gfx.printf("%s", _currentState.hvacWiFiSSID.c_str());
@@ -191,7 +207,7 @@ void drawFlexItFanIcon(){
 
 void drawCoolHeatIcon(){
   gfx.fillRect(87, 56, 48, 48, LIGHTGREY);
-  if (isFlagCurrentState(HVAC_IS_HEATING)){
+  if (isFlagCurrentState(OUTBIT_COOL1HEAT0)){
     gfx.drawPng(heatwave48, ~0u, 87, 56);
   }else{ 
     gfx.drawPng(freezingTemp48, ~0u, 87, 56);
@@ -200,16 +216,16 @@ void drawCoolHeatIcon(){
 }
 
 void drawAwayFireIcon(){
-  uint8_t posYImage = 4;
-  uint8_t posXImage = 140;
-  if (_currentState.ioState & HVAC_IS_FXAWAY)
+  uint8_t posYImage = 6;
+  uint8_t posXImage = 124;
+  if (_currentState.ioState & OUTBIT_FXHOME_AWAY)
       gfx.drawPng(secureHome32, ~0u, posXImage, posYImage);
     else
       gfx.fillRect(posXImage, posYImage, 32, 32, DISP_BACK_COLOR);
 
-  posYImage = 207;
-  posXImage = 140;
-  if (_currentState.ioState & HVAC_IS_FXFIRE)
+  posYImage = 6;
+  posXImage = 158;
+  if (_currentState.ioState & OUTBIT_FXFIRE_ALARM)
       gfx.drawPng(flames32, ~0u, posXImage, posYImage);
     else
       gfx.fillRect(posXImage, posYImage, 32, 32, DISP_BACK_COLOR);
@@ -362,6 +378,9 @@ void showIpAddressAndSSID(wifiState_t wifiState){
     return;
   gfx.setFont(WIFI_STATUS_FONT);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
+  gfx.setCursor(175, 208);
+  gfx.printf("%14s", wifiState.ssid);
+
   char buff[19];
     sprintf(buff, "%d.%d.%d.%d", wifiState.ipAddress[0], 
                                     wifiState.ipAddress[1], 
@@ -369,9 +388,6 @@ void showIpAddressAndSSID(wifiState_t wifiState){
                                     wifiState.ipAddress[3]);
   gfx.setCursor(155, 223);
   gfx.printf("%16s", buff);
-
-  gfx.setCursor(175, 208);
-  gfx.printf("%14s", wifiState.ssid);
 }
 
 void showTcpConnectionState(wifiState_t wifiState){
@@ -498,6 +514,20 @@ void setMaxPowerTButtonPressed(){
   redrawAutoManMode();
 }
 
+void setRoofLightTButtonPressed(){
+  vibrate();
+  if (isFlagConfig(CONFBIT_ROOFLIGHT)){
+      rsSendSetRoofLight(0);
+      clearFlagConfig(CONFBIT_ROOFLIGHT);
+  }else{
+    if (!isFlagCurrentState(OUTBIT_ROOF_LIGHT)){
+      rsSendSetRoofLight(1);
+    }else{
+      setFlagConfig(CONFBIT_ROOFLIGHT);
+    }
+  }
+}
+
 void setOffPowerTButtonPressed(){
   vibrate();
   rsSendSetDACVoltage(0);
@@ -508,7 +538,7 @@ void setOffPowerTButtonPressed(){
 
 void switchHeatCoolTButtonPressed(){
   rsSendSetDACVoltage(0);
-  if (isFlagCurrentState(HVAC_IS_HEATING))
+  if (isFlagCurrentState(OUTBIT_COOL1HEAT0))
     rsSendSetHCState(0);
   else 
     rsSendSetHCState(1);
@@ -572,7 +602,8 @@ void setup(){
   initNetwork();
   initSerialDataM5Stack();
   initButtons();
-  drawMaxImageZone();
+  //drawMaxImageZone();
+  drawRoofLightZone();
   drawOffImageZone();
   drawManAutoImageZone();
   redrawAutoManMode();
@@ -650,11 +681,11 @@ void loop() {
     intensityDecButtonPressed();
   }
 
-  if (setMaxPowerTButton.wasPressed()){
-    setMaxPowerTButtonPressed();
+  if (setRoofLightTButton.wasPressed()){
+    setRoofLightTButtonPressed();
   }
 
-  if (setMaxPowerTButton.wasReleased()){
+  if (setRoofLightTButton.wasReleased()){
     _reDrawImageButtons = true;
   }
 
