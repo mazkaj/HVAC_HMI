@@ -114,6 +114,16 @@ void rsSendSetFlexitFanSpeed(uint8_t fxFanSpeed){
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }
 
+void rsSendSetFlexitForcedVent(uint16_t forcedVentTime){
+    uint8_t rsSendBuffer[RS_BUFFER_SIZE];
+    rsSendBuffer[0] = STX;
+    rsSendBuffer[1] = HVAC_CMD_FORCEDVENT;
+    rsSendBuffer[2] = forcedVentTime >> 8;
+    rsSendBuffer[3] = forcedVentTime & 0xFF;
+    rsSendBuffer[4] = ETX;
+    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+}
+
 void rsSendSetFlexitAwayMode(uint8_t awayMode){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];
     rsSendBuffer[0] = STX;

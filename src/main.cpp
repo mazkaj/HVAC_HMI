@@ -63,6 +63,7 @@ void drawMaxImageZone(){
 }
 
 void drawRoofLightZone(){
+   gfx.fillRect(5, 122, 73, 73, TFT_LIGHTGRAY);
   if ((_nodeConfig.configuration & CONFBIT_ROOFLIGHT) && (_currentState.ioState & OUTBIT_ROOF_LIGHT)){
     gfx.drawPng(bulbON48, ~0u, 15, 122);
     gfx.drawPng(autoGreenSign32, ~0u, 23, 166);
@@ -124,16 +125,24 @@ void applyReceivedData(){
 }
 
 void updateDisplayHvacData(){
+  static uint8_t lastNodeConfiguraton = 0xFF;
+
   if (_currentState.ioState != _lastCurrentState.ioState){
     _lastCurrentState.ioState = _currentState.ioState;
     drawCoolHeatIcon();
     drawAwayFireIcon();
     redrawAutoManMode();
+    drawRoofLightZone();
     displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
   }
 
+  if (_nodeConfig.configuration != lastNodeConfiguraton){
+    lastNodeConfiguraton = _nodeConfig.configuration;
+    drawRoofLightZone();
+  }
+
   if (_currentState.fxFanSpeed != _lastCurrentState.fxFanSpeed
-       || _currentState.fxDataState & FXStepNoCorrectAnswer){
+       || (_currentState.fxDataState & FXStepNoCorrectAnswer) != (_lastCurrentState.fxDataState & FXStepNoCorrectAnswer)){
     _lastCurrentState.fxFanSpeed = _currentState.fxFanSpeed;
     _lastCurrentState.fxDataState = _currentState.fxDataState;
     drawFlexItFanIcon();

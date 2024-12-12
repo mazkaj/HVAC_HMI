@@ -48,7 +48,9 @@ void putDataIntoSendBuffer(uint8_t *tcpSendBuffer){
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 2] = (byte)(_currentState.dacOutVoltage);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] = _currentState.ioState;
   if (_currentState.autoMode)
-    tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= (1 << 4);
+    tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= OUTBIT_TEMPAUTO;
+  if (isFlagConfig(CONFBIT_ROOFLIGHT))
+    tcpSendBuffer[eTcpPacketPosStartPayLoad + 3] |= OUTBIT_ROOFLIGHTAUTO;
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 4] = _currentState.fxFanSpeed;
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 5] = _currentState.fxDataState;
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 6] = ((uint16_t)(_currentState.roomTemperature * 100) >> 8);
@@ -59,7 +61,6 @@ void putDataIntoSendBuffer(uint8_t *tcpSendBuffer){
 
 void processTcpDataReq(uint8_t *receivedBuffer){
   static uint8_t lastTcpPacketNumber = 0;
-  uint16_t setVoltage = 0;
   if (receivedBuffer[eTcpPacketPosPacketNumber] == lastTcpPacketNumber)
     return;
   lastTcpPacketNumber = receivedBuffer[eTcpPacketPosPacketNumber];
@@ -72,49 +73,53 @@ void processTcpDataReq(uint8_t *receivedBuffer){
   if (receivedBuffer[eTcpPacketPosMiWiCommand] != PAN_TCP_HVAC)
     return;
   Serial.printf("ProcessDataReq = %d\n", receivedBuffer[eTcpPacketPosStartPayLoad + 1]);
+  uint16_t value = receivedBuffer[eTcpPacketPosStartPayLoad + 2];
+  value <<= 8;
+  value |= receivedBuffer[eTcpPacketPosStartPayLoad + 3];
 
   switch (receivedBuffer[eTcpPacketPosStartPayLoad + 1]){
     case HVAC_CMD_GETCURRENTDATA:
       sendCurrentState(receivedBuffer[eTcpPacketPosSenderAddr0], receivedBuffer[eTcpPacketPosSenderAddr1]);
       break;
     case HVAC_CMD_SETVOLTAGE:
-      setVoltage = receivedBuffer[eTcpPacketPosStartPayLoad + 2];
-      setVoltage <<= 8;
-      setVoltage |= receivedBuffer[eTcpPacketPosStartPayLoad + 3];
-      rsSendSetDACVoltage(setVoltage);
+      rsSendSetDACVoltage(value);
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
     case HVAC_CMD_COOL_HEAT:
-      rsSendSetHCState(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      rsSendSetHCState(value);
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
     case HVAC_CMD_AUTO_MAN:
-      if (receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 2)
+      if (value == 2)
         _currentState.autoMode = !_currentState.autoMode;
       else
-        _currentState.autoMode = (receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 1);
+        _currentState.autoMode = (value == 1);
       switchAutoManMode();
       reDrawImageButtons();
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
       case HVAC_CMD_SET_TEMPERATURE:
-        setReqTemperature(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+        setReqTemperature(value);
         _currentState.validDataHVAC = DATAHVAC_TCPREQ;
       break;
     case HVAC_CMD_SETFANSPEED:
-      rsSendSetFlexitFanSpeed(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      rsSendSetFlexitFanSpeed(value);
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
     break;
     case HVAC_CMD_ROOFLIGHT:
-      setRoofLight(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      setRoofLight(value);
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
     break;
     case HVAC_CMD_AWAY:
-      rsSendSetFlexitAwayMode(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      rsSendSetFlexitAwayMode(value);
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
     break;
     case HVAC_CMD_FIRE:
-      rsSendSetFlexitFireMode(receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+      rsSendSetFlexitFireMode(value);
+      _currentState.validDataHVAC = DATAHVAC_TCPREQ;
+    break;
+    case HVAC_CMD_FORCEDVENT:
+      rsSendSetFlexitForcedVent(value);
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
     break;
 
