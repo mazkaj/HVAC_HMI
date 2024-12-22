@@ -160,15 +160,25 @@ void updateDisplayHvacData(){
     drawFlexItFanIcon();
     _reDrawImageButtons = false;
   }
-  displayHvacWiFiInfo();
-  
+  if (_currentState.uartHMIState != _lastCurrentState.uartHMIState){
+    _lastCurrentState.uartHMIState = _currentState.uartHMIState;
+    displayHvacWiFiInfo();
+  }
 }
 
 void displayHvacWiFiInfo(){
   gfx.setFont(WIFI_STATUS_FONT);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   gfx.setCursor(2, 223);
-  gfx.printf("%03d:%03d", _currentState.hvacipAddress, _currentState.hvacTcpIndexInConnTable);
+  if (_currentState.uartHMIState == UARTHMI_NOANSWER){
+    gfx.setTextColor(RED,  DISP_BACK_COLOR);
+    gfx.print("UART HVAC ");
+    gfx.setCursor(2, 208);
+    gfx.print("** ERROR **");
+    return;
+  }
+  gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
+  gfx.printf("10.%03d:%03d", _currentState.hvacipAddress, _currentState.hvacTcpIndexInConnTable);
 
   gfx.setCursor(2, 208);
   gfx.printf("%11s", _currentState.hvacWiFiSSID.substring(0,11).c_str());
@@ -679,13 +689,14 @@ void loop() {
   processTcpDataReq(receivedBuffer);
   updateWiFiState();
   controlRoofLight();
+  updateDisplayHvacData();
 
   if (processDataFromHVAC() > 0){
     if (_currentState.validDataHVAC == DATAHVAC_TCPREQ && netServiceReadyToSendNextPacket()){
       sendCurrentStateToServer();
       _updatePANFlag = 0;
     }
-    updateDisplayHvacData();
+    _currentState.uartHMIState = UARTHMI_DATARECEIVED;
   }
 
   if (_updatePANFlag == 1 && netServiceReadyToSendNextPacket()){

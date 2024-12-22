@@ -9,17 +9,26 @@ HardwareSerial uartToM5Stack(2);
 
 void initSerialDataM5Stack(){
     uartToM5Stack.begin(115200, SERIAL_8N1, 13, 14);
+    _currentState.uartHMIState = UARTHMI_IDLE;
 }
 
 uint8_t processDataFromHVAC(){
+    static uint8_t uartTry = 0;
     uint8_t receivedBuffer[RS_HVACBUFFER_SIZE];
     size_t charsAvailable = uartToM5Stack.available();
     if (charsAvailable > 0){
         if (charsAvailable > RS_HVACBUFFER_SIZE)
             charsAvailable = RS_HVACBUFFER_SIZE;
         uint8_t receivedBytes = uartToM5Stack.read(receivedBuffer, charsAvailable);
-        //Serial.printf("RS received bytes = %d : ", receivedBytes);
+        _currentState.uartHMIState = UARTHMI_DATARECEIVED;
+        uartTry = 0;
         return analizeReceivedData(receivedBuffer, receivedBytes);
+    }else if (_currentState.uartHMIState == UARTHMI_WAITING_ACK){
+        uartTry ++;
+        if (uartTry > 3){
+            _currentState.uartHMIState = UARTHMI_NOANSWER;
+            uartTry = 0;
+        }
     }
     return 0;
 }
@@ -79,6 +88,14 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
     return 1;
 }
 
+void sendToHVAC(uint8_t *rsSendBuffer){
+    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+    if (_currentState.uartHMIState == UARTHMI_DATARECEIVED)
+        _currentState.uartHMIState = UARTHMI_WAITING_ACK;
+    else
+        _currentState.uartHMIState = UARTHMI_NOANSWER;
+}
+
 void rsSendSetDACVoltage(uint16_t setVoltage){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];
 
@@ -87,11 +104,7 @@ void rsSendSetDACVoltage(uint16_t setVoltage){
     rsSendBuffer[2] = (uint8_t)(setVoltage >> 8);
     rsSendBuffer[3] = (uint8_t)(setVoltage);
     rsSendBuffer[4] = ETX;
-/*    Serial.printf("rsSendSetDACVoltage = %d\n", setVoltage);
-    for (int i = 0; i < RS_BUFFER_SIZE; i++)
-        Serial.printf("%02X ", rsSendBuffer[i]);
-    Serial.print("\n");
- */    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+    sendToHVAC(rsSendBuffer);
 }
 
 void rsSendSetHCState(uint8_t hcState){
@@ -101,7 +114,7 @@ void rsSendSetHCState(uint8_t hcState){
     rsSendBuffer[2] = 0;
     rsSendBuffer[3] = hcState;
     rsSendBuffer[4] = ETX;
-    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+    sendToHVAC(rsSendBuffer);
 }
 
 void rsSendSetFlexitFanSpeed(uint16_t fxFanSpeed){
@@ -111,7 +124,7 @@ void rsSendSetFlexitFanSpeed(uint16_t fxFanSpeed){
     rsSendBuffer[2] = fxFanSpeed >> 8;
     rsSendBuffer[3] = fxFanSpeed & 0xFF;
     rsSendBuffer[4] = ETX;
-    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+    sendToHVAC(rsSendBuffer);
 }
 
 void rsSendSetFlexitForcedVent(uint16_t forcedVentTime){
@@ -121,7 +134,7 @@ void rsSendSetFlexitForcedVent(uint16_t forcedVentTime){
     rsSendBuffer[2] = forcedVentTime >> 8;
     rsSendBuffer[3] = forcedVentTime & 0xFF;
     rsSendBuffer[4] = ETX;
-    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+    sendToHVAC(rsSendBuffer);
 }
 
 void rsSendSetFlexitAwayMode(uint8_t awayMode){
@@ -131,7 +144,7 @@ void rsSendSetFlexitAwayMode(uint8_t awayMode){
     rsSendBuffer[2] = 0;
     rsSendBuffer[3] = awayMode;
     rsSendBuffer[4] = ETX;
-    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+    sendToHVAC(rsSendBuffer);
 }
 
 void rsSendSetFlexitFireMode(uint8_t fireMode){
@@ -141,7 +154,7 @@ void rsSendSetFlexitFireMode(uint8_t fireMode){
     rsSendBuffer[2] = 0;
     rsSendBuffer[3] = fireMode;
     rsSendBuffer[4] = ETX;
-    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+    sendToHVAC(rsSendBuffer);
 }
 
 void rsSendSetRoofLight(uint8_t roofLight){
@@ -151,7 +164,7 @@ void rsSendSetRoofLight(uint8_t roofLight){
     rsSendBuffer[2] = 0;
     rsSendBuffer[3] = roofLight;
     rsSendBuffer[4] = ETX;
-    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+    sendToHVAC(rsSendBuffer);
 }
 
 
@@ -162,5 +175,5 @@ void rsSendGetCurrentState(){
     rsSendBuffer[2] = 0;
     rsSendBuffer[3] = 0;
     rsSendBuffer[4] = ETX;
-    uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
+    sendToHVAC(rsSendBuffer);
 }

@@ -39,6 +39,11 @@
 
 #define WIFI_STATUS_FONT    &fonts::efontCN_16_b
 
+#define UARTHMI_IDLE          0
+#define UARTHMI_WAITING_ACK   1
+#define UARTHMI_NOANSWER      2
+#define UARTHMI_DATARECEIVED  3
+
 
 typedef struct
 {
@@ -61,6 +66,7 @@ typedef struct
     uint8_t gapoLuxInterval;
     bool isGaPoValid = 0;
     bool autoMode = false;
+    uint8_t uartHMIState;
 } currentState_t;
 
 typedef struct
