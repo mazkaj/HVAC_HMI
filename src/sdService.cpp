@@ -65,7 +65,13 @@ void readConfiguration(){
         showNodeName();
     }
     else{
-        Serial.printf("SD ERROR!!! - Can`t read registers.txt file");
+        Serial.printf("SD ERROR!!! - Can`t read registers.txt file ... ");
+        Serial.printf("Using default configration \n");
+        setFlagConfig(CONFBIT_ROOFLIGHT);
+        _nodeConfig.tresholdOn = 5;
+        _nodeConfig.tresholdOff = 10;
+        _nodeConfig.hourOn = 132;
+        _nodeConfig.hourOff = 36;
     }
 }
 

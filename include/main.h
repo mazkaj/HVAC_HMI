@@ -79,6 +79,9 @@ typedef struct
 String nodeName;
 } nodeConfig_t;
 
+void setFlagConfig(uint8_t flagToClear);
+void clearFlagConfig(uint8_t flagToClear);
+bool isFlagConfig(uint8_t flagToCheck);
 void initButtons();
 void drawOffImageZone();
 void drawMaxImageZone();

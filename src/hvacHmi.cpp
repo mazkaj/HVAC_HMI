@@ -289,15 +289,4 @@ void adjustTemperature(){
       rsSendSetDACVoltage(0);
 }
 
-void setFlagConfig(uint8_t flagToSet){
-  _nodeConfig.configuration |= flagToSet;
-}
-
-void clearFlagConfig(uint8_t flagToClear){
-  _nodeConfig.configuration &= ~flagToClear;
-}
-
-bool isFlagConfig(uint8_t flagToCheck){
-  return (_nodeConfig.configuration & flagToCheck);
-}
 

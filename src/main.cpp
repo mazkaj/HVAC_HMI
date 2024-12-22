@@ -42,6 +42,18 @@ Button switchHeatCoolTButton(83, 48, 152, 66, false, "", {LIGHTGREY, BLACK, BLAC
 Button manAutoTButton(3, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
 Button fxFanSpeed(240, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
 
+void setFlagConfig(uint8_t flagToSet){
+  _nodeConfig.configuration |= flagToSet;
+}
+
+void clearFlagConfig(uint8_t flagToClear){
+  _nodeConfig.configuration &= ~flagToClear;
+}
+
+bool isFlagConfig(uint8_t flagToCheck){
+  return (_nodeConfig.configuration & flagToCheck);
+}
+
 void initButtons(){
    intensityIncTButton.setFreeFont(&dodger320pt7b);
    intensityDecTButton.setFreeFont(&dodger320pt7b);
