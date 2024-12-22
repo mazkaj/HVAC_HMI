@@ -14,7 +14,7 @@ uint8_t processDataFromHVAC();
 uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes);
 void rsSendSetDACVoltage(uint16_t setVoltage);
 void rsSendSetHCState(uint8_t hcState);
-void rsSendSetFlexitFanSpeed(uint8_t hcState);
+void rsSendSetFlexitFanSpeed(uint16_t hcState);
 void rsSendSetFlexitForcedVent(uint16_t forcedVentTime);
 void rsSendSetFlexitAwayMode(uint8_t awayMode);
 void rsSendSetFlexitFireMode(uint8_t fireMode);

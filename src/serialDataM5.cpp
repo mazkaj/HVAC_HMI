@@ -104,12 +104,12 @@ void rsSendSetHCState(uint8_t hcState){
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }
 
-void rsSendSetFlexitFanSpeed(uint8_t fxFanSpeed){
+void rsSendSetFlexitFanSpeed(uint16_t fxFanSpeed){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];
     rsSendBuffer[0] = STX;
     rsSendBuffer[1] = HVAC_CMD_SETFANSPEED;
-    rsSendBuffer[2] = 0;
-    rsSendBuffer[3] = fxFanSpeed;
+    rsSendBuffer[2] = fxFanSpeed >> 8;
+    rsSendBuffer[3] = fxFanSpeed & 0xFF;
     rsSendBuffer[4] = ETX;
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
 }

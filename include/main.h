@@ -35,6 +35,7 @@
 #define LUX_SWITCH_ON    1
 #define LUX_SWITCH_OFF   2   
 #define LUX_BETWEEN_ON_OFF  3
+#define LUX_NOGAPODATA   4
 
 #define WIFI_STATUS_FONT    &fonts::efontCN_16_b
 
@@ -57,6 +58,7 @@ typedef struct
     uint8_t fxFanSpeed;
     uint8_t fxDataState;
     uint32_t gapoLuxValue;
+    uint8_t gapoLuxInterval;
     bool isGaPoValid = 0;
     bool autoMode = false;
 } currentState_t;
@@ -92,8 +94,6 @@ void checkBatCondition();
 void redrawWiFiIcon(uint8_t wifiIconType);
 void showConnectingInfo();
 void showNodeName();
-void showGaPoData();
-void hideGaPoData();
 void showWiFiStrength(int8_t lastRSSIValue);
 void updateWiFiState();
 void showIpAddressAndSSID(wifiState_t wifiState);

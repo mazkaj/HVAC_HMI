@@ -38,6 +38,10 @@
 #include "bulbON48.h"
 #include "bulbOnA48.h"
 #include "autoGreenSign32.h"
+#include "brightnessMax32.h"
+#include "brightnessMin32.h"
+#include "brightnessBetween32.h"
+#include "brightnessWarning32.h"
 
 #include "dodger320pt7b.h"
 #include "data_latin24pt7b.h"

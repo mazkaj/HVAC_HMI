@@ -72,7 +72,7 @@ void processTcpDataReq(uint8_t *receivedBuffer){
 
   if (receivedBuffer[eTcpPacketPosMiWiCommand] != PAN_TCP_HVAC)
     return;
-  Serial.printf("ProcessDataReq = %d\n", receivedBuffer[eTcpPacketPosStartPayLoad + 1]);
+  Serial.printf("ProcessDataReq = %d value = %02x:%02x\n", receivedBuffer[eTcpPacketPosStartPayLoad + 1], receivedBuffer[eTcpPacketPosStartPayLoad + 2], receivedBuffer[eTcpPacketPosStartPayLoad + 3]);
   uint16_t value = receivedBuffer[eTcpPacketPosStartPayLoad + 2];
   value <<= 8;
   value |= receivedBuffer[eTcpPacketPosStartPayLoad + 3];
@@ -128,10 +128,12 @@ void processTcpDataReq(uint8_t *receivedBuffer){
 
 void processAnswerFromServer(uint8_t *receivedBuffer){
   _currentState.isGaPoValid = 0;
-  if (receivedBuffer[eTcpPacketPosStartPayLoad + 1] == 0xFF && receivedBuffer[eTcpPacketPosStartPayLoad + 2] == 0xFF)
+  if (receivedBuffer[eTcpPacketPosStartPayLoad + 3] == 0)
     return;
   _currentState.isGaPoValid = 1;
   _currentState.gapoLuxValue = calculateLUX(receivedBuffer[eTcpPacketPosStartPayLoad + 1], receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+  Serial.printf("Received gapoLux = %d\n", _currentState.gapoLuxValue);
+
 }
 
 uint32_t calculateLUX(uint8_t highByte, uint8_t lowByte){
@@ -159,16 +161,19 @@ void setRoofLight(uint8_t roofLightMode){
 }
 
 void controlRoofLight(){
-  if (!isFlagConfig(CONFBIT_ROOFLIGHT))
-    return;
-
   static uint8_t _lastGapoLuxInterval = LUX_INITIALIZE;
   uint8_t gapoLuxInterval = 0;
-  Serial.printf("_gapoLux = %d\n", _currentState.gapoLuxValue);
+  if (_currentState.isGaPoValid == 0){
+    if (_lastGapoLuxInterval != LUX_NOGAPODATA){
+     _lastGapoLuxInterval = LUX_NOGAPODATA;
+      showRoofLightState(LUX_NOGAPODATA);
+    }
+    return;
+  }
 
-  if (_currentState.gapoLuxValue < _nodeConfig.tresholdOn)
+  if (_currentState.gapoLuxValue <= _nodeConfig.tresholdOn)
     gapoLuxInterval = LUX_SWITCH_ON;
-  else if (_currentState.gapoLuxValue > _nodeConfig.tresholdOff)
+  else if (_currentState.gapoLuxValue >= _nodeConfig.tresholdOff)
     gapoLuxInterval = LUX_SWITCH_OFF;
   else
     gapoLuxInterval = LUX_BETWEEN_ON_OFF;
@@ -184,11 +189,15 @@ void controlRoofLight(){
 
   if (gapoLuxInterval != _lastGapoLuxInterval){
     _lastGapoLuxInterval = gapoLuxInterval;
-    if (_lastGapoLuxInterval == LUX_SWITCH_ON){
-      rsSendSetRoofLight(1);
-    }
-    if (_lastGapoLuxInterval == LUX_SWITCH_OFF){
-      rsSendSetRoofLight(0);
+    _currentState.gapoLuxInterval = gapoLuxInterval;
+    Serial.printf("_gapoLux = %d\n", _currentState.gapoLuxValue);
+    if (isFlagConfig(CONFBIT_ROOFLIGHT)){
+      if (_lastGapoLuxInterval == LUX_SWITCH_ON){
+        rsSendSetRoofLight(1);
+      }
+      if (_lastGapoLuxInterval == LUX_SWITCH_OFF){
+        rsSendSetRoofLight(0);
+      }
     }
     showRoofLightState(gapoLuxInterval);
   }

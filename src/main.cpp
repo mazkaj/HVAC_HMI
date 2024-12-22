@@ -120,8 +120,6 @@ bool isFlagCurrentState(uint8_t flagToCheck){
 void applyReceivedData(){
   if (isFlagCurrentState(PAN_TCP_RSWITCH_LOCK))
     return;
-
-    showGaPoData();
 }
 
 void updateDisplayHvacData(){
@@ -173,7 +171,7 @@ void displayHvacWiFiInfo(){
   gfx.printf("%03d:%03d", _currentState.hvacipAddress, _currentState.hvacTcpIndexInConnTable);
 
   gfx.setCursor(2, 208);
-  gfx.printf("%s", _currentState.hvacWiFiSSID.c_str());
+  gfx.printf("%11s", _currentState.hvacWiFiSSID.substring(0,11).c_str());
 }
 
 void drawFlexItFanIcon(){
@@ -299,7 +297,27 @@ void displayTime(){
 }
 
 void showRoofLightState(uint8_t gapoLuxInterval){
+  uint8_t posXImage = 90;
+  uint8_t posYImage = 204;
 
+  gfx.fillRect(posXImage, posYImage, 32, 32, DISP_BACK_COLOR);
+  switch(gapoLuxInterval){
+    case LUX_SWITCH_ON:
+      gfx.drawPng(brightnessMin32, ~0u, posXImage, posYImage);
+    break;
+    case LUX_SWITCH_OFF:
+      gfx.drawPng(brightnessMax32, ~0u, posXImage, posYImage);
+    break;
+    case LUX_BETWEEN_ON_OFF:
+      gfx.drawPng(brightnessMid32, ~0u, posXImage, posYImage);
+    break;
+    case LUX_INITIALIZE:
+      gfx.drawPng(brightnessWarning32, ~0u, posXImage, posYImage);
+    break;
+    case LUX_NOGAPODATA:
+      gfx.drawPng(brightnessWarning32, ~0u, posXImage, posYImage);
+    break;
+  }
 }
 
 void checkBatCondition(){
@@ -660,6 +678,7 @@ void loop() {
   netService(receivedBuffer);
   processTcpDataReq(receivedBuffer);
   updateWiFiState();
+  controlRoofLight();
 
   if (processDataFromHVAC() > 0){
     if (_currentState.validDataHVAC == DATAHVAC_TCPREQ && netServiceReadyToSendNextPacket()){
