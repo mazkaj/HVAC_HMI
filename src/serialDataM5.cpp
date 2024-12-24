@@ -128,6 +128,7 @@ void sendToHVAC(uint8_t *rsSendBuffer){
         _currentState.uartHMIState = UARTHMI_NOANSWER;
 }
 
+
 void rsSendSetDACVoltage(uint16_t setVoltage){
     uint8_t rsSendBuffer[RS_BUFFER_SIZE];
 
