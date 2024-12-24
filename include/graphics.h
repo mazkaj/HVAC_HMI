@@ -2,6 +2,7 @@
 #include "fanMax48.h"
 #include "fanMid48.h"
 #include "fanOff48.h"
+#include "fanForcedVent48.h"
 #include "fanOFFCaution48.h"
 #include "secureHome32.h"
 #include "flames32.h"

@@ -49,7 +49,7 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
 
 //        Serial.printf("%02X ", receivedBuffer[iChar]);
 
-        if (receivedBuffer[iChar] == ETX && posInPacket == 22)
+        if (receivedBuffer[iChar] == ETX && posInPacket == RS_HVACBUFFER_SIZE - 2)
             break;
         
         if (posInPacket == 0){
@@ -78,6 +78,37 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
         if (posInPacket == 21)
             _currentState.fxDataState = receivedBuffer[iChar];
 
+        if (posInPacket == 22){
+            _currentState.fxForcedVentilationTime = receivedBuffer[iChar];
+            _currentState.fxForcedVentilationTime <<= 8;
+        }
+        if (posInPacket == 23)
+            _currentState.fxForcedVentilationTime |= receivedBuffer[iChar];
+
+        if (posInPacket == 24){
+            _currentState.fxForcedVentilationSpeed = receivedBuffer[iChar];
+        }
+
+        if (posInPacket == 25)
+            _currentState.fxForcedVentilation = receivedBuffer[iChar];
+
+        if (posInPacket == 26){
+            _currentState.fxOutdoorTemperaure = receivedBuffer[iChar];
+            _currentState.fxOutdoorTemperaure <<= 8;
+        }
+        if (posInPacket == 27)
+            _currentState.fxOutdoorTemperaure |= receivedBuffer[iChar];
+
+        if (posInPacket == 28){
+            _currentState.fxSupplyTemperature = receivedBuffer[iChar];
+            _currentState.fxSupplyTemperature <<= 8;
+        }
+        if (posInPacket == 29)
+            _currentState.fxSupplyTemperature |= receivedBuffer[iChar];
+
+        if (posInPacket == 30)
+            _currentState.fxRegulationFanSpeed = receivedBuffer[iChar];
+
         posInPacket++;
         iChar++;
     }
@@ -85,6 +116,7 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
 
     if (iChar == receivedBytes) //no ETX
         return 0;
+
     return 1;
 }
 

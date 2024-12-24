@@ -62,6 +62,12 @@ typedef struct
     uint32_t idSHT;
     uint8_t fxFanSpeed;
     uint8_t fxDataState;
+    uint16_t fxOutdoorTemperaure;
+    uint16_t fxSupplyTemperature;
+    uint16_t fxForcedVentilationTime;
+    uint8_t fxForcedVentilationSpeed;
+    uint8_t fxRegulationFanSpeed;
+    bool fxForcedVentilation;
     uint32_t gapoLuxValue;
     uint8_t gapoLuxInterval;
     bool isGaPoValid = 0;

@@ -152,8 +152,10 @@ void updateDisplayHvacData(){
   }
 
   if (_currentState.fxFanSpeed != _lastCurrentState.fxFanSpeed
+       || _currentState.fxForcedVentilation != _lastCurrentState.fxForcedVentilation
        || (_currentState.fxDataState & FXStepNoCorrectAnswer) != (_lastCurrentState.fxDataState & FXStepNoCorrectAnswer)){
     _lastCurrentState.fxFanSpeed = _currentState.fxFanSpeed;
+    _lastCurrentState.fxForcedVentilation = _currentState.fxForcedVentilation;
     _lastCurrentState.fxDataState = _currentState.fxDataState;
     drawFlexItFanIcon();
   }
@@ -207,6 +209,13 @@ void drawFlexItFanIcon(){
   Serial.printf("FanSpeed = %d, FXDataState= %d\n", _currentState.fxFanSpeed, _currentState.fxDataState);
   if (_currentState.fxDataState & FXStepNoCorrectAnswer){
       gfx.drawPng(fanOFFCaution48, ~0u, posXImage, posYImage);
+      return;
+  }
+
+  if (_currentState.fxForcedVentilation){
+      gfx.drawPng(fanForcedVent48, ~0u, posXImage, posYImage);
+      gfx.setTextColor(TFT_WHITE, TFT_RED);
+      gfx.print("MAX");
       return;
   }
 
@@ -292,6 +301,7 @@ void displayReqTemperature(){
 void displayCurrentTemp(){
   if (_currentState.idSHT > 0){
     gfx.setCursor(196, 2);
+    gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
     gfx.setFont(&prototype22pt7b);
     gfx.printf("%3.1f  ", _currentState.roomTemperature);
     gfx.drawPng(homeTemperature32, ~0u, 288, 4);
@@ -308,6 +318,7 @@ void displayTime(){
   gfx.setCursor(4, 4);
   const lgfx::v1::IFont *defFont = gfx.getFont();
   gfx.setFont(&data_latin24pt7b);
+  gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   gfx.print("     ");
   gfx.setCursor(4, 4);
   gfx.printf("%2d:%02d", currentTime.Hours, currentTime.Minutes);
@@ -595,11 +606,15 @@ void switchHeatCoolTButtonPressed(){
 
 void fxFanSpeedTButtonPressed(){
   vibrate();
+  if (_currentState.fxForcedVentilation){
+    rsSendSetFlexitForcedVent(0);
+    return;
+  }
+
   if (_currentState.fxFanSpeed < 3)
-    _currentState.fxFanSpeed++;
+    rsSendSetFlexitFanSpeed(_currentState.fxFanSpeed + 1);
   else
-    _currentState.fxFanSpeed = 0;
-  rsSendSetFlexitFanSpeed(_currentState.fxFanSpeed);
+    rsSendSetFlexitFanSpeed(0);
 }
 
 void switchAutoManMode(){

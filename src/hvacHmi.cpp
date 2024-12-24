@@ -22,24 +22,24 @@ DFRobot_SHT40 _sensorSHT40(SHT40_AD1B_IIC_ADDR);
 uint32_t _idSHT = 0;
 
 void sendCurrentStateToServer(){
-  uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 10];
+  uint8_t tcpSendBuffer[TCP_PACKET_SIZE];
   setAsRecipientServerIPAddress(tcpSendBuffer);
   tcpSendBuffer[eTcpPacketPosStartPayLoad] = getTcpIndexInConnTable();
   putDataIntoSendBuffer(tcpSendBuffer);
-  Serial.printf("%d: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC, tcpSendBuffer[eTcpPacketPosRecipientAddr0],  tcpSendBuffer[eTcpPacketPosRecipientAddr1]);
-  sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
+  Serial.printf("0x%02x: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC, tcpSendBuffer[eTcpPacketPosRecipientAddr0],  tcpSendBuffer[eTcpPacketPosRecipientAddr1]);
+  sendToServer(tcpSendBuffer, PAN_TCP_HVAC, TCP_PACKET_SIZE);
 }
 
 void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
-    uint8_t tcpSendBuffer[TCP_HEADER_LENGTH + 10];
+    uint8_t tcpSendBuffer[TCP_PACKET_SIZE];
     wifiState_t wifiState;
     getWiFiState(&wifiState);
     tcpSendBuffer[eTcpPacketPosRecipientAddr0] = recipientAddress0;
     tcpSendBuffer[eTcpPacketPosRecipientAddr1] = recipientAddress1;
     tcpSendBuffer[eTcpPacketPosStartPayLoad] = wifiState.tcpIndexInConnectionTable;
     putDataIntoSendBuffer(tcpSendBuffer);
-    sendToServer(tcpSendBuffer, PAN_TCP_HVAC, sizeof(tcpSendBuffer));
-    Serial.printf("%d: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC, recipientAddress0, recipientAddress1);
+    sendToServer(tcpSendBuffer, PAN_TCP_HVAC, TCP_PACKET_SIZE);
+    Serial.printf("0x%02x: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC, recipientAddress0, recipientAddress1);
     _currentState.validDataHVAC = DATAHVAC_VALID;
 }
 
@@ -57,6 +57,15 @@ void putDataIntoSendBuffer(uint8_t *tcpSendBuffer){
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 7] = (uint8_t)(_currentState.roomTemperature * 100);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 8] = (uint8_t)_currentState.roomHumidity;
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 9] = _currentState.reqTemperature;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 10] = (byte)(_currentState.fxForcedVentilationTime >> 8);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 11] = (byte)(_currentState.fxForcedVentilationTime);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 12] = _currentState.fxForcedVentilationSpeed;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 13] = _currentState.fxForcedVentilation;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 14] = (byte)(_currentState.fxOutdoorTemperaure >> 8);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 15] = (byte)(_currentState.fxOutdoorTemperaure);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 16] = (byte)(_currentState.fxSupplyTemperature >> 8);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 17] = (byte)(_currentState.fxSupplyTemperature);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 18] = _currentState.fxRegulationFanSpeed;
 }
 
 void processTcpDataReq(uint8_t *receivedBuffer){
