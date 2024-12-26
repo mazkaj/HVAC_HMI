@@ -31,12 +31,6 @@
 
 #define CONFBIT_ROOFLIGHT   1
 
-#define LUX_INITIALIZE    0
-#define LUX_SWITCH_ON    1
-#define LUX_SWITCH_OFF   2   
-#define LUX_BETWEEN_ON_OFF  3
-#define LUX_NOGAPODATA   4
-
 #define WIFI_STATUS_FONT    &fonts::efontCN_16_b
 
 #define UARTHMI_IDLE          0
@@ -44,6 +38,13 @@
 #define UARTHMI_NOANSWER      2
 #define UARTHMI_DATARECEIVED  3
 
+enum luxLightState_t{
+    LUX_INITIALIZE = 0,  
+    LUX_SWITCH_ON = 0x01,   
+    LUX_SWITCH_OFF = 0x02,
+    LUX_BETWEEN_ON_OFF = 0x04,
+    LUX_NOGAPODATA = 0x08  
+};
 
 typedef struct
 {
@@ -68,8 +69,11 @@ typedef struct
     uint8_t fxForcedVentilationSpeed;
     uint8_t fxRegulationFanSpeed;
     bool fxForcedVentilation;
-    uint32_t gapoLuxValue;
-    uint8_t gapoLuxInterval;
+    uint32_t fxCurrentTime;
+    uint16_t fxForcedVentLeftSeconds;
+    bool fxReplaceFilterAlarm;
+    uint16_t gapoLuxValue;
+    uint8_t roofLightState;
     bool isGaPoValid = 0;
     bool autoMode = false;
     uint8_t uartHMIState;
@@ -97,11 +101,11 @@ void applyReceivedData();
 void updateDisplayHvacData();
 void drawFlexItFanIcon();
 void drawCoolHeatIcon();
-void drawAwayFireIcon();
+void drawAwayFireFilterAlarmIcon();
 void displayHvacWiFiInfo();
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage);
 void displayReqTemperature();
-void showRoofLightState(uint8_t gapoLuxInterval);
+void showRoofLightState();
 void doActionSwitchOnButtonPressed();
 void doActionSwitchOffButtonPressed();
 void showStatusIcons();

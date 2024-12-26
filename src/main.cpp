@@ -137,10 +137,11 @@ void applyReceivedData(){
 void updateDisplayHvacData(){
   static uint8_t lastNodeConfiguraton = 0xFF;
 
-  if (_currentState.ioState != _lastCurrentState.ioState){
+  if (_currentState.ioState != _lastCurrentState.ioState || _currentState.fxReplaceFilterAlarm != _lastCurrentState.fxReplaceFilterAlarm){
     _lastCurrentState.ioState = _currentState.ioState;
+    _lastCurrentState.fxReplaceFilterAlarm = _currentState.fxReplaceFilterAlarm;
     drawCoolHeatIcon();
-    drawAwayFireIcon();
+    drawAwayFireFilterAlarmIcon();
     redrawAutoManMode();
     drawRoofLightZone();
     displayDacOutVoltage(TFT_GREEN, _currentState.dacOutVoltage);
@@ -151,9 +152,23 @@ void updateDisplayHvacData(){
     drawRoofLightZone();
   }
 
+  if (_currentState.fxForcedVentLeftSeconds > 0 && _currentState.fxCurrentTime != _lastCurrentState.fxCurrentTime){
+    _currentState.fxForcedVentLeftSeconds -= (_currentState.fxCurrentTime - _lastCurrentState.fxCurrentTime);
+    _lastCurrentState.fxCurrentTime = _currentState.fxCurrentTime;
+    Serial.printf("fxForcedVentLeftSeconds = %d\n", _currentState.fxForcedVentLeftSeconds);
+  }
+
   if (_currentState.fxFanSpeed != _lastCurrentState.fxFanSpeed
        || _currentState.fxForcedVentilation != _lastCurrentState.fxForcedVentilation
        || (_currentState.fxDataState & FXStepNoCorrectAnswer) != (_lastCurrentState.fxDataState & FXStepNoCorrectAnswer)){
+    if (_currentState.fxForcedVentilation != _lastCurrentState.fxForcedVentilation){
+      if (_currentState.fxForcedVentilation){
+        _currentState.fxForcedVentLeftSeconds = _currentState.fxForcedVentilationTime * 60;
+        _lastCurrentState.fxCurrentTime = _currentState.fxCurrentTime;
+      }else{
+        _currentState.fxForcedVentLeftSeconds = 0;
+      }
+    } 
     _lastCurrentState.fxFanSpeed = _currentState.fxFanSpeed;
     _lastCurrentState.fxForcedVentilation = _currentState.fxForcedVentilation;
     _lastCurrentState.fxDataState = _currentState.fxDataState;
@@ -253,20 +268,24 @@ void drawCoolHeatIcon(){
   displayDacOutVoltage(DISP_TEXT_COLOR, _currentState.dacOutVoltage);
 }
 
-void drawAwayFireIcon(){
+void drawAwayFireFilterAlarmIcon(){
   uint8_t posYImage = 6;
   uint8_t posXImage = 124;
-  if (_currentState.ioState & OUTBIT_FXHOME_AWAY)
+
+  if (_currentState.fxReplaceFilterAlarm){
+    gfx.drawPng(filtrationAlarm32, ~0u, posXImage, posYImage);
+  }else{
+    if (_currentState.ioState & OUTBIT_FXHOME_AWAY)
       gfx.drawPng(secureHome32, ~0u, posXImage, posYImage);
     else
       gfx.fillRect(posXImage, posYImage, 32, 32, DISP_BACK_COLOR);
-
+  }
   posYImage = 6;
   posXImage = 158;
   if (_currentState.ioState & OUTBIT_FXFIRE_ALARM)
-      gfx.drawPng(flames32, ~0u, posXImage, posYImage);
-    else
-      gfx.fillRect(posXImage, posYImage, 32, 32, DISP_BACK_COLOR);
+    gfx.drawPng(flames32, ~0u, posXImage, posYImage);
+  else
+    gfx.fillRect(posXImage, posYImage, 32, 32, DISP_BACK_COLOR);
 }
 
 void displayDacOutVoltage(int dispColor, uint16_t dacOutVoltage){
@@ -329,12 +348,16 @@ void displayTime(){
     _currentState.getTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
 }
 
-void showRoofLightState(uint8_t gapoLuxInterval){
+void showRoofLightState(){
   uint8_t posXImage = 90;
   uint8_t posYImage = 204;
 
   gfx.fillRect(posXImage, posYImage, 32, 32, DISP_BACK_COLOR);
-  switch(gapoLuxInterval){
+  if (_currentState.roofLightState & LUX_NOGAPODATA){
+    gfx.drawPng(brightnessWarning32, ~0u, posXImage, posYImage);
+    return;
+  }
+  switch(_currentState.roofLightState){
     case LUX_SWITCH_ON:
       gfx.drawPng(brightnessMin32, ~0u, posXImage, posYImage);
     break;
@@ -345,9 +368,6 @@ void showRoofLightState(uint8_t gapoLuxInterval){
       gfx.drawPng(brightnessMid32, ~0u, posXImage, posYImage);
     break;
     case LUX_INITIALIZE:
-      gfx.drawPng(brightnessWarning32, ~0u, posXImage, posYImage);
-    break;
-    case LUX_NOGAPODATA:
       gfx.drawPng(brightnessWarning32, ~0u, posXImage, posYImage);
     break;
   }
@@ -678,6 +698,7 @@ void setup(){
   _tcpPANUpdateTicker.attach_ms(TIMER_UPDATE_PAN, reqUpdatePAN);
   _lastCurrentState.ioState = 0xFF;
   _lastCurrentState.dacOutVoltage = 0xFFFF;
+  _currentState.roofLightState = LUX_INITIALIZE;
 }
 
 void loop() {

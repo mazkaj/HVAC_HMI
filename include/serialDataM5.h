@@ -3,7 +3,7 @@
 
 
 #define RS_BUFFER_SIZE  5
-#define RS_HVACBUFFER_SIZE  33
+#define RS_HVACBUFFER_SIZE  38
 
 #define STX 0x02
 #define ETX 0x03

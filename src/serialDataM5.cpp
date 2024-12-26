@@ -109,6 +109,24 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
         if (posInPacket == 30)
             _currentState.fxRegulationFanSpeed = receivedBuffer[iChar];
 
+        if (posInPacket == 31)
+            _currentState.fxCurrentTime = receivedBuffer[iChar];
+
+        if (posInPacket == 32){
+            _currentState.fxCurrentTime <<= 8;
+            _currentState.fxCurrentTime |= receivedBuffer[iChar];
+        }
+        if (posInPacket == 33){
+            _currentState.fxCurrentTime <<= 8;
+            _currentState.fxCurrentTime |= receivedBuffer[iChar];
+        }
+        if (posInPacket == 34){
+            _currentState.fxCurrentTime <<= 8;
+            _currentState.fxCurrentTime |= receivedBuffer[iChar];
+        }
+        if (posInPacket == 35)
+            _currentState.fxReplaceFilterAlarm = receivedBuffer[iChar];
+            
         posInPacket++;
         iChar++;
     }

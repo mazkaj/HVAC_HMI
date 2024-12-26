@@ -6,6 +6,7 @@
 #include "fanOFFCaution48.h"
 #include "secureHome32.h"
 #include "flames32.h"
+#include "filtrationAlarm32.h"
 #include "freezingTemp64.h"
 #include "heatwave64.h"
 #include "speedometerBWHigh2.h"

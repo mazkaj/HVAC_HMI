@@ -66,6 +66,9 @@ void putDataIntoSendBuffer(uint8_t *tcpSendBuffer){
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 16] = (byte)(_currentState.fxSupplyTemperature >> 8);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 17] = (byte)(_currentState.fxSupplyTemperature);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 18] = _currentState.fxRegulationFanSpeed;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 19] = (byte)(_currentState.fxForcedVentLeftSeconds >> 8);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 20] = (byte)(_currentState.fxForcedVentLeftSeconds);
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 21] = _currentState.fxReplaceFilterAlarm;
 }
 
 void processTcpDataReq(uint8_t *receivedBuffer){
@@ -137,10 +140,14 @@ void processTcpDataReq(uint8_t *receivedBuffer){
 
 void processAnswerFromServer(uint8_t *receivedBuffer){
   _currentState.isGaPoValid = 0;
-  if (receivedBuffer[eTcpPacketPosStartPayLoad + 3] == 0)
+  if (receivedBuffer[eTcpPacketPosStartPayLoad + 3] == 0){
+    Serial.printf("No valid gapoLux = %d\n", receivedBuffer[eTcpPacketPosStartPayLoad + 3]);
     return;
+  }
   _currentState.isGaPoValid = 1;
-  _currentState.gapoLuxValue = calculateLUX(receivedBuffer[eTcpPacketPosStartPayLoad + 1], receivedBuffer[eTcpPacketPosStartPayLoad + 2]);
+  _currentState.gapoLuxValue = receivedBuffer[eTcpPacketPosStartPayLoad + 1];
+  _currentState.gapoLuxValue <<= 8;
+  _currentState.gapoLuxValue |= receivedBuffer[eTcpPacketPosStartPayLoad + 2];
   Serial.printf("Received gapoLux = %d\n", _currentState.gapoLuxValue);
 
 }
@@ -169,46 +176,51 @@ void setRoofLight(uint8_t roofLightMode){
   clearFlagConfig(CONFBIT_ROOFLIGHT);
 }
 
-void controlRoofLight(){
-  static uint8_t _lastGapoLuxInterval = LUX_INITIALIZE;
-  uint8_t gapoLuxInterval = 0;
-  if (_currentState.isGaPoValid == 0){
-    if (_lastGapoLuxInterval != LUX_NOGAPODATA){
-     _lastGapoLuxInterval = LUX_NOGAPODATA;
-      showRoofLightState(LUX_NOGAPODATA);
-    }
-    return;
-  }
-
-  if (_currentState.gapoLuxValue <= _nodeConfig.tresholdOn)
-    gapoLuxInterval = LUX_SWITCH_ON;
+luxLightState_t determineRoofLightByLux(){
+if (_currentState.gapoLuxValue <= _nodeConfig.tresholdOn)
+    return LUX_SWITCH_ON;
   else if (_currentState.gapoLuxValue >= _nodeConfig.tresholdOff)
-    gapoLuxInterval = LUX_SWITCH_OFF;
+    return LUX_SWITCH_OFF;
   else
-    gapoLuxInterval = LUX_BETWEEN_ON_OFF;
+    return LUX_BETWEEN_ON_OFF;
+}
 
-  if (_nodeConfig.hourOn != _nodeConfig.hourOff){
+luxLightState_t determineRoofLightByTime(){
+
+ if (_nodeConfig.hourOn != _nodeConfig.hourOff){
     uint8_t currentTime = _currentState.time.Hours * 6 + _currentState.time.Minutes / 10;
-    if (gapoLuxInterval == LUX_SWITCH_ON || gapoLuxInterval == LUX_BETWEEN_ON_OFF){
-      if (currentTime < _nodeConfig.hourOn && currentTime >_nodeConfig.hourOff){
-        gapoLuxInterval = LUX_SWITCH_OFF;
-      }
+    if (currentTime < _nodeConfig.hourOn && currentTime >_nodeConfig.hourOff){
+      return LUX_SWITCH_ON;
+    }else{
+      return LUX_SWITCH_OFF;
     }
+  }else{
+    return LUX_INITIALIZE;
+  }
+}
+
+void controlRoofLight(){
+  uint8_t roofLightState = LUX_INITIALIZE;
+  if (_currentState.isGaPoValid == 0){
+    roofLightState = determineRoofLightByTime();
+    roofLightState |= LUX_NOGAPODATA;
+  }else{
+    roofLightState = determineRoofLightByLux();
   }
 
-  if (gapoLuxInterval != _lastGapoLuxInterval){
-    _lastGapoLuxInterval = gapoLuxInterval;
-    _currentState.gapoLuxInterval = gapoLuxInterval;
+  if (roofLightState != _currentState.roofLightState){
     Serial.printf("_gapoLux = %d\n", _currentState.gapoLuxValue);
+    Serial.printf("roofLightState = %d _currentState.roofLightState=%d \n", roofLightState, _currentState.roofLightState);
+    _currentState.roofLightState = roofLightState;
+    showRoofLightState();
     if (isFlagConfig(CONFBIT_ROOFLIGHT)){
-      if (_lastGapoLuxInterval == LUX_SWITCH_ON){
+      if (_currentState.roofLightState == LUX_SWITCH_ON){
         rsSendSetRoofLight(1);
       }
-      if (_lastGapoLuxInterval == LUX_SWITCH_OFF){
+      if (_currentState.roofLightState == LUX_SWITCH_OFF){
         rsSendSetRoofLight(0);
       }
     }
-    showRoofLightState(gapoLuxInterval);
   }
 }
 
