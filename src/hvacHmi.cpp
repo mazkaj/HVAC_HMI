@@ -189,7 +189,7 @@ luxLightState_t determineRoofLightByTime(){
 
  if (_nodeConfig.hourOn != _nodeConfig.hourOff){
     uint8_t currentTime = _currentState.time.Hours * 6 + _currentState.time.Minutes / 10;
-    if (currentTime < _nodeConfig.hourOn && currentTime >_nodeConfig.hourOff){
+    if (currentTime > _nodeConfig.hourOn || currentTime <_nodeConfig.hourOff){
       return LUX_SWITCH_ON;
     }else{
       return LUX_SWITCH_OFF;
@@ -213,14 +213,13 @@ void controlRoofLight(){
     Serial.printf("roofLightState = %d _currentState.roofLightState=%d \n", roofLightState, _currentState.roofLightState);
     _currentState.roofLightState = roofLightState;
     showRoofLightState();
-    if (isFlagConfig(CONFBIT_ROOFLIGHT)){
-      if (_currentState.roofLightState == LUX_SWITCH_ON){
-        rsSendSetRoofLight(1);
-      }
-      if (_currentState.roofLightState == LUX_SWITCH_OFF){
-        rsSendSetRoofLight(0);
-      }
-    }
+  }
+  if (isFlagConfig(CONFBIT_ROOFLIGHT)){
+    if ((_currentState.roofLightState & ~LUX_NOGAPODATA) == LUX_SWITCH_ON && (_currentState.ioState & OUTBIT_ROOF_LIGHT) == 0)
+      rsSendSetRoofLight(1);
+
+    if ((_currentState.roofLightState & ~LUX_NOGAPODATA) == LUX_SWITCH_OFF && (_currentState.ioState & OUTBIT_ROOF_LIGHT) > 0)
+      rsSendSetRoofLight(0);
   }
 }
 
