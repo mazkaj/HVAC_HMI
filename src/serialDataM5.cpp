@@ -126,6 +126,9 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
         }
         if (posInPacket == 35)
             _currentState.fxReplaceFilterAlarm = receivedBuffer[iChar];
+
+        if (posInPacket == 36)
+            _currentState.fxHeatingBatteryActive = receivedBuffer[iChar];
             
         posInPacket++;
         iChar++;

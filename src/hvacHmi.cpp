@@ -69,6 +69,7 @@ void putDataIntoSendBuffer(uint8_t *tcpSendBuffer){
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 19] = (byte)(_currentState.fxForcedVentLeftSeconds >> 8);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 20] = (byte)(_currentState.fxForcedVentLeftSeconds);
   tcpSendBuffer[eTcpPacketPosStartPayLoad + 21] = _currentState.fxReplaceFilterAlarm;
+  tcpSendBuffer[eTcpPacketPosStartPayLoad + 22] = _currentState.fxHeatingBatteryActive;
 }
 
 void processTcpDataReq(uint8_t *receivedBuffer){

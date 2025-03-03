@@ -8,6 +8,7 @@
 
 #include "myMiWiProtocol.h"
 #include <graphics.h>
+#include "myMiWiProtocol.h"
 #include "netService.h"
 
 #define DISP_BACK_COLOR     TFT_WHITE
@@ -72,6 +73,7 @@ typedef struct
     uint32_t fxCurrentTime;
     uint16_t fxForcedVentLeftSeconds;
     bool fxReplaceFilterAlarm;
+    bool fxHeatingBatteryActive;
     uint16_t gapoLuxValue;
     uint8_t roofLightState;
     bool isGaPoValid = 0;
