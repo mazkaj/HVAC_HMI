@@ -706,18 +706,6 @@ void loop() {
   uint8_t receivedBuffer[TCP_BUFFER_SIZE];
 
   displayTime();
-//  checkBatCondition();
-  // if (_getCurrentTempFlag == 1){
-  //   _getCurrentTempFlag = 2;
-  //   dsReqTemperature();
-  // }
-
-  // if (_getCurrentTempFlag == 2 && dsGetTemperature()){
-  //   _getCurrentTempFlag = 0;
-  //   displayCurrentTemp();
-  //   if (_currentState.reqTemperature == 0xFF)
-  //     _currentState.reqTemperature = _currentState.roomTemperature;
-  // }
   if (_setHmiDimm == 1){
     gfx.setBrightness(_hmiDimmValue);
     _setHmiDimm = 0;
