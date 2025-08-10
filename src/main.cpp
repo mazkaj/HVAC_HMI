@@ -700,7 +700,7 @@ void setup(){
   _lastCurrentState.dacOutVoltage = 0xFFFF;
   _currentState.roofLightState = LUX_INITIALIZE;
 }
-
+ 
 void loop() {
 
   uint8_t receivedBuffer[TCP_BUFFER_SIZE];
