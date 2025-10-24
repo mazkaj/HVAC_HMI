@@ -9,7 +9,7 @@ extern currentState_t _currentState;
 extern netNodeParameter_t _netNodeParam;
 extern nodeConfig_t _nodeConfig;
 uint8_t _configuration;
-
+using namespace m5;
 M5GFX gfx;
 Ticker _reqHVACCurrentStateTicker;
 Ticker _getCurrentTempTicker;
@@ -29,18 +29,45 @@ int16_t _gapoTempValue;
 currentState_t _lastCurrentState;
 bool _reDrawImageButtons = false;
 
-Zone offImageZone = Zone(240,120,64,64);
-Zone maxImageZone = Zone(10,120,64,64);
-Zone lightImageZone = Zone(244,120,64,64);
+// Zone offImageZone = Zone(240,120,64,64);
+// Zone maxImageZone = Zone(10,120,64,64);
+// Zone lightImageZone = Zone(244,120,64,64);
 
-Button intensityIncTButton(83, 120, 75, 75, false, "+", {LIGHTGREY, BLACK, BLACK});
-Button intensityDecTButton(160, 120, 75, 75, false, "-", {LIGHTGREY, BLACK, BLACK});
-Button setRoofLightTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
-//Button setMaxPowerTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
-Button setOffPowerTButton(240, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
-Button switchHeatCoolTButton(83, 48, 152, 66, false, "", {LIGHTGREY, BLACK, BLACK});
-Button manAutoTButton(3, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
-Button fxFanSpeed(240, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
+LGFX_Button intensityIncTButton;
+LGFX_Button intensityDecTButton;
+LGFX_Button setRoofLightTButton;
+LGFX_Button setOffPowerTButton;
+LGFX_Button switchHeatCoolTButton;
+LGFX_Button manAutoTButton;
+LGFX_Button fxFanSpeed;
+
+// Button intensityDecTButton(160, 120, 75, 75, false, "-", {LIGHTGREY, BLACK, BLACK});
+// Button setRoofLightTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
+// //Button setMaxPowerTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
+// Button setOffPowerTButton(240, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
+// Button switchHeatCoolTButton(83, 48, 152, 66, false, "", {LIGHTGREY, BLACK, BLACK});
+// Button manAutoTButton(3, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
+// Button fxFanSpeed(240, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
+
+void initButtons(){
+  intensityIncTButton.initButton(&M5.Lcd, 83, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "+", 1, 1);
+  //intensityIncTButton.setFreeFont(&dodger320pt7b);
+  intensityIncTButton.drawButton();
+  intensityDecTButton.initButton(&M5.Lcd, 160, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "-");
+  intensityDecTButton.drawButton();
+  setRoofLightTButton.initButton(&M5.Lcd, 3, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
+  setRoofLightTButton.drawButton();
+  setOffPowerTButton.initButton(&M5.Lcd, 240, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
+  setOffPowerTButton.drawButton();
+  switchHeatCoolTButton.initButton(&M5.Lcd, 83, 48, 152, 66, BLACK, LIGHTGREY, BLACK, "");
+  switchHeatCoolTButton.drawButton();
+  manAutoTButton.initButton(&M5.Lcd, 3, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
+  manAutoTButton.drawButton();
+  fxFanSpeed.initButton(&M5.Lcd, 240, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
+  fxFanSpeed.drawButton();
+   //intensityDecTButton.setFreeFont(&dodger320pt7b);
+}
+
 
 void setFlagConfig(uint8_t flagToSet){
   _nodeConfig.configuration |= flagToSet;
@@ -54,13 +81,6 @@ bool isFlagConfig(uint8_t flagToCheck){
   return (_nodeConfig.configuration & flagToCheck);
 }
 
-void initButtons(){
-   intensityIncTButton.setFreeFont(&dodger320pt7b);
-   intensityDecTButton.setFreeFont(&dodger320pt7b);
-   intensityIncTButton.setTextSize(1);
-   intensityDecTButton.setTextSize(1);
-   M5.Buttons.draw();
-}
 
 void drawOffImageZone(){
    //gfx.fillRect(240, 120, 64, 64, TFT_MAGENTA);
@@ -111,9 +131,9 @@ void redrawAutoManMode(){
 }
 
 void vibrate(){
-  M5.Axp.SetLDOEnable(3, true);
+  M5.Power.setVibration(100);
   delay(100);
-  M5.Axp.SetLDOEnable(3, false);
+  M5.Power.setVibration(0);
 }
 
 
@@ -329,22 +349,22 @@ void displayCurrentTemp(){
 
 void displayTime(){
   static uint8_t lastMinute = 60;
-  RTC_TimeTypeDef currentTime;
-  M5.Rtc.GetTime(&currentTime);
-  if (lastMinute == currentTime.Minutes)
+  rtc_time_t currentTime;
+  M5.Rtc.getTime(&currentTime);
+  if (lastMinute == currentTime.minutes)
     return;
-  lastMinute = currentTime.Minutes;
+  lastMinute = currentTime.minutes;
   gfx.setCursor(4, 4);
   const lgfx::v1::IFont *defFont = gfx.getFont();
   gfx.setFont(&data_latin24pt7b);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   gfx.print("     ");
   gfx.setCursor(4, 4);
-  gfx.printf("%2d:%02d", currentTime.Hours, currentTime.Minutes);
+  gfx.printf("%2d:%02d", currentTime.hours, currentTime.minutes);
   gfx.setFont(defFont);
-  if (!_currentState.getTimeFlag == TIMEFLAG_WAITFORMIDNIGHT && currentTime.Hours == 4 && currentTime.Minutes == 15)
+  if (!_currentState.getTimeFlag == TIMEFLAG_WAITFORMIDNIGHT && currentTime.hours == 4 && currentTime.minutes == 15)
     _currentState.getTimeFlag = TIMEFLAG_REQUIREPANTIME;
-  if (_currentState.getTimeFlag  == TIMEFLAG_PANTIMERECEIVED && currentTime.Minutes != 0)
+  if (_currentState.getTimeFlag  == TIMEFLAG_PANTIMERECEIVED && currentTime.minutes != 0)
     _currentState.getTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
 }
 
@@ -374,13 +394,13 @@ void showRoofLightState(){
 }
 
 void checkBatCondition(){
-  uint8_t batLevel = (uint8_t)M5.Axp.GetBatteryLevel();
+  uint8_t batLevel = (uint8_t)M5.Power.getBatteryLevel();
   gfx.setFont(&fonts::efontCN_16_b);
   gfx.setTextColor(TFT_BLACK, TFT_WHITE);
   gfx.setCursor(28, 210);
   gfx.printf("%3d%%", batLevel);
 
-  if (M5.Axp.isCharging())
+  if (M5.Power.isCharging())
     batLevel = 1;
   else if (batLevel > 70)
     batLevel = 2;
@@ -668,10 +688,14 @@ void hmiDimmerTick(){
 void setup(){
   
   Serial.begin(115200);
-  M5.begin();
-  gfx.begin();
+  auto cfgM5 = M5.config();
+  //bool LCDEnable = true, bool SDEnable = true, bool SerialEnable = true, bool I2CEnable = false, mbus_mode_t mode = KMBusModeOutput
+  cfgM5.internal_rtc =true;
+  cfgM5.disable_rtc_irq = true;
+  M5.begin(cfgM5);
   M5.Rtc.begin();
   WiFi.mode(WIFI_STA);
+  gfx.begin();
   gfx.clear(DISP_BACK_COLOR);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   _netNodeParam.nodeAddrType = ADDR_HVACHMI;
@@ -700,7 +724,7 @@ void setup(){
   _lastCurrentState.dacOutVoltage = 0xFFFF;
   _currentState.roofLightState = LUX_INITIALIZE;
 }
- 
+
 void loop() {
 
   uint8_t receivedBuffer[TCP_BUFFER_SIZE];
@@ -749,56 +773,56 @@ void loop() {
     getCurrentTime();
 
   M5.update();
-  if (intensityIncTButton.wasPressed()){
+  if (intensityIncTButton.justPressed()){
     intensityIncButtonPressed();
   }
-  if (intensityDecTButton.wasPressed()){
+  if (intensityDecTButton.justPressed()){
     intensityDecButtonPressed();
   }
 
-  if (setRoofLightTButton.wasPressed()){
+  if (setRoofLightTButton.justPressed()){
     setRoofLightTButtonPressed();
   }
 
-  if (setRoofLightTButton.wasReleased()){
+  if (setRoofLightTButton.justReleased()){
     _reDrawImageButtons = true;
   }
 
-  if (setOffPowerTButton.wasPressed()){
+  if (setOffPowerTButton.justPressed()){
     setOffPowerTButtonPressed();
   }
 
-  if (setOffPowerTButton.wasReleased()){
+  if (setOffPowerTButton.justReleased()){
     _reDrawImageButtons = true;
   }
 
-  if (fxFanSpeed.wasPressed()){
+  if (fxFanSpeed.justPressed()){
     fxFanSpeedTButtonPressed();
   }
   
-  if (fxFanSpeed.wasReleased()){
+  if (fxFanSpeed.justReleased()){
     _reDrawImageButtons = true;
   }
   
-  if (switchHeatCoolTButton.wasPressed()){
+  if (switchHeatCoolTButton.justPressed()){
     vibrate();
     switchHeatCoolTButtonPressed();
   }
 
-  if (switchHeatCoolTButton.wasReleased()){
+  if (switchHeatCoolTButton.justReleased()){
     _reDrawImageButtons = true;
   }
 
-  if (manAutoTButton.wasPressed()){
+  if (manAutoTButton.justPressed()){
     vibrate();
     _currentState.autoMode = !_currentState.autoMode;
     switchAutoManMode();
   }
 
-  if (manAutoTButton.wasReleased()){
+  if (manAutoTButton.justReleased()){
     reDrawImageButtons();
   }
-  if (M5.Touch.changed){
+  if (M5.Touch.getDetail().wasPressed()){
     if (_hmiDimmValue < 100){
       _hmiDimmValue = 100;
       _setHmiDimm = 1;

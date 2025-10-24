@@ -1,9 +1,10 @@
 #include <Arduino.h>
 
-#include <M5Core2.h>
+//#include <M5Core2.h>
+#include <M5Unified.h>
+#include <M5GFX.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
-#include <M5GFX.h>
 #include <Ticker.h>
 
 #include "myMiWiProtocol.h"
@@ -47,10 +48,11 @@ enum luxLightState_t{
     LUX_NOGAPODATA = 0x08  
 };
 
+using namespace m5;
 typedef struct
 {
-    RTC_TimeTypeDef time;
-    RTC_DateTypeDef date;
+    rtc_time_t time;
+    rtc_date_t date;
     uint8_t getTimeFlag = TIMEFLAG_WAITFORMIDNIGHT;
     uint8_t validDataHVAC = DATAHVAC_VALID;
     uint16_t dacOutVoltage;

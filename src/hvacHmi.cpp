@@ -38,8 +38,8 @@ void sendCurrentState(byte recipientAddress0, byte recipientAddress1){
     tcpSendBuffer[eTcpPacketPosRecipientAddr1] = recipientAddress1;
     tcpSendBuffer[eTcpPacketPosStartPayLoad] = wifiState.tcpIndexInConnectionTable;
     putDataIntoSendBuffer(tcpSendBuffer);
-    sendToServer(tcpSendBuffer, PAN_TCP_HVAC, TCP_PACKET_SIZE);
-    Serial.printf("0x%02x: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC, recipientAddress0, recipientAddress1);
+    sendToServer(tcpSendBuffer, PAN_TCP_HVAC_A, TCP_PACKET_SIZE);
+    Serial.printf("0x%02x: sendCurrentState to %02X %02X\n", PAN_TCP_HVAC_A, recipientAddress0, recipientAddress1);
     _currentState.validDataHVAC = DATAHVAC_VALID;
 }
 
@@ -189,7 +189,7 @@ if (_currentState.gapoLuxValue <= _nodeConfig.tresholdOn)
 luxLightState_t determineRoofLightByTime(){
 
  if (_nodeConfig.hourOn != _nodeConfig.hourOff){
-    uint8_t currentTime = _currentState.time.Hours * 6 + _currentState.time.Minutes / 10;
+    uint8_t currentTime = _currentState.time.hours * 6 + _currentState.time.minutes / 10;
     if (currentTime > _nodeConfig.hourOn || currentTime <_nodeConfig.hourOff){
       return LUX_SWITCH_ON;
     }else{

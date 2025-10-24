@@ -86,7 +86,7 @@ uint8_t storeConfigurationToSD(uint8_t *registers){
         return 0;
 }
 
-void writeConfig(File _confFile, uint8_t confValue){
+void writeConfig(fs::File _confFile, uint8_t confValue){
     _confFile.print("{000;Configuration;");
     _confFile.print(confValue);
     _confFile.print(";");
