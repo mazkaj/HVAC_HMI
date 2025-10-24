@@ -1,6 +1,6 @@
 #include <main.h>
-#include <netService.h>
 #include <sdService.h>
+#include <netService.h>
 #include "SerialDataM5.h"
 #include "hvacHmi.h"
 #include "flexit.h"
@@ -9,7 +9,6 @@ extern currentState_t _currentState;
 extern netNodeParameter_t _netNodeParam;
 extern nodeConfig_t _nodeConfig;
 uint8_t _configuration;
-using namespace m5;
 M5GFX gfx;
 Ticker _reqHVACCurrentStateTicker;
 Ticker _getCurrentTempTicker;
@@ -50,20 +49,20 @@ LGFX_Button fxFanSpeed;
 // Button fxFanSpeed(240, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
 
 void initButtons(){
-  intensityIncTButton.initButton(&M5.Lcd, 83, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "+", 1, 1);
+  intensityIncTButton.initButton(&gfx, 83, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "+", 1, 1);
   //intensityIncTButton.setFreeFont(&dodger320pt7b);
   intensityIncTButton.drawButton();
-  intensityDecTButton.initButton(&M5.Lcd, 160, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "-");
+  intensityDecTButton.initButton(&gfx, 160, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "-");
   intensityDecTButton.drawButton();
-  setRoofLightTButton.initButton(&M5.Lcd, 3, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
+  setRoofLightTButton.initButton(&gfx, 3, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
   setRoofLightTButton.drawButton();
-  setOffPowerTButton.initButton(&M5.Lcd, 240, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
+  setOffPowerTButton.initButton(&gfx, 240, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
   setOffPowerTButton.drawButton();
-  switchHeatCoolTButton.initButton(&M5.Lcd, 83, 48, 152, 66, BLACK, LIGHTGREY, BLACK, "");
+  switchHeatCoolTButton.initButton(&gfx, 83, 48, 152, 66, BLACK, LIGHTGREY, BLACK, "");
   switchHeatCoolTButton.drawButton();
-  manAutoTButton.initButton(&M5.Lcd, 3, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
+  manAutoTButton.initButton(&gfx, 3, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
   manAutoTButton.drawButton();
-  fxFanSpeed.initButton(&M5.Lcd, 240, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
+  fxFanSpeed.initButton(&gfx, 240, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
   fxFanSpeed.drawButton();
    //intensityDecTButton.setFreeFont(&dodger320pt7b);
 }
@@ -693,14 +692,13 @@ void setup(){
   cfgM5.internal_rtc =true;
   cfgM5.disable_rtc_irq = true;
   M5.begin(cfgM5);
-  M5.Rtc.begin();
+  //M5.Rtc.begin();
   WiFi.mode(WIFI_STA);
   gfx.begin();
   gfx.clear(DISP_BACK_COLOR);
   gfx.setTextColor(DISP_TEXT_COLOR, DISP_BACK_COLOR);
   _netNodeParam.nodeAddrType = ADDR_HVACHMI;
   _netNodeParam.tcpNodeType = tcpNodeTypeHVACDispEnum;
-  //initDS18B20();
   initSHT40();
   if (_currentState.idSHT > 0)
     gfx.drawPng(homeTemperature32, ~0u, 288, 4);

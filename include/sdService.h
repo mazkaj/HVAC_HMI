@@ -5,7 +5,7 @@
 // {001;Treshold ON;200; 0x00 0xc8 }
 // {003;Treshold OFF;2000; 0x07 0xd0 }
 // {005;Nazwa;Lampy front         }
-#include <SD.h>
+#include "main.h"
 
 void sdInitialize();
 void readConfiguration();

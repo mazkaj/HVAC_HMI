@@ -1,11 +1,13 @@
+#pragma once
 #include <Arduino.h>
 
 //#include <M5Core2.h>
-#include <M5Unified.h>
-#include <M5GFX.h>
+#include <SD.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <Ticker.h>
+#include <M5Unified.h>
+#include <M5GFX.h>
 
 #include "myMiWiProtocol.h"
 #include <graphics.h>
