@@ -754,7 +754,6 @@ void loop() {
       sendCurrentStateToServer();
       _updatePANFlag = 0;
     }
-    _currentState.uartHMIState = UARTHMI_DATARECEIVED;
   }
 
   if (_updatePANFlag == 1 && netServiceReadyToSendNextPacket()){

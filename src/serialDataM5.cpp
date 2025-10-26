@@ -143,10 +143,9 @@ uint8_t analizeReceivedData(uint8_t *receivedBuffer, uint8_t receivedBytes){
 
 void sendToHVAC(uint8_t *rsSendBuffer){
     uartToM5Stack.write(rsSendBuffer, RS_BUFFER_SIZE);
-    if (_currentState.uartHMIState == UARTHMI_DATARECEIVED)
+    if (_currentState.uartHMIState == UARTHMI_DATARECEIVED || _currentState.uartHMIState == UARTHMI_IDLE){
         _currentState.uartHMIState = UARTHMI_WAITING_ACK;
-    else
-        _currentState.uartHMIState = UARTHMI_NOANSWER;
+    }
 }
 
 

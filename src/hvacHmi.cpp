@@ -92,7 +92,7 @@ void processTcpDataReq(uint8_t *receivedBuffer){
 
   switch (receivedBuffer[eTcpPacketPosStartPayLoad + 1]){
     case HVAC_CMD_GETCURRENTDATA:
-      sendCurrentState(receivedBuffer[eTcpPacketPosSenderAddr0], receivedBuffer[eTcpPacketPosSenderAddr1]);
+      rsSendGetCurrentState();
       break;
     case HVAC_CMD_SETVOLTAGE:
       rsSendSetDACVoltage(value);
@@ -135,8 +135,16 @@ void processTcpDataReq(uint8_t *receivedBuffer){
       rsSendSetFlexitForcedVent(value);
       _currentState.validDataHVAC = DATAHVAC_TCPREQ;
     break;
-
   }
+  // delay(10);  
+  // processDataFromHVAC();  //get previous data from HVAC
+  // rsSendGetCurrentState();
+  // uint8_t timeoutExpired = 10;  //wait 100ms
+  // while (processDataFromHVAC() == 0 && timeoutExpired > 0){
+  //   delay(10);
+  //   timeoutExpired--;
+  // }
+  sendCurrentState(receivedBuffer[eTcpPacketPosSenderAddr0], receivedBuffer[eTcpPacketPosSenderAddr1]);
 }
 
 void processAnswerFromServer(uint8_t *receivedBuffer){
