@@ -512,10 +512,10 @@ void showWiFiState(wifiState_t wifiState){
     return;
 
   lastTcpCheckCounter = wifiState.tcpCheckCounter;
-  if (wifiState.connectionState == WIFI_GETNEXTCONNECTION ||
+  if (wifiState.connectionState == WIFI_STARTCONNECTION ||
       wifiState.connectionState == WIFI_SEARCHING ||
       wifiState.connectionState == WIFI_CONNECTING ||
-      wifiState.connectionState == WIFI_STARTCHECKCONNECTION)
+      wifiState.connectionState == WIFI_STARTSEARCHCONNECTION)
     showConnectingInfo(wifiState);
 
   if (wifiState.connectionState == WIFI_CONNECTED ||
