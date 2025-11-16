@@ -1,5 +1,4 @@
 #pragma once
-#include <Wire.h>
 #include <Arduino.h>
 
 //#include <M5Core2.h>
