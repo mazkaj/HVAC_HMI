@@ -28,10 +28,6 @@ int16_t _gapoTempValue;
 currentState_t _lastCurrentState;
 bool _reDrawImageButtons = false;
 
-// Zone offImageZone = Zone(240,120,64,64);
-// Zone maxImageZone = Zone(10,120,64,64);
-// Zone lightImageZone = Zone(244,120,64,64);
-
 LGFX_Button intensityIncTButton;
 LGFX_Button intensityDecTButton;
 LGFX_Button setRoofLightTButton;
@@ -40,31 +36,21 @@ LGFX_Button switchHeatCoolTButton;
 LGFX_Button manAutoTButton;
 LGFX_Button fxFanSpeed;
 
-// Button intensityDecTButton(160, 120, 75, 75, false, "-", {LIGHTGREY, BLACK, BLACK});
-// Button setRoofLightTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
-// //Button setMaxPowerTButton(3, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
-// Button setOffPowerTButton(240, 120, 75, 75, false, "", {LIGHTGREY, BLACK, BLACK});
-// Button switchHeatCoolTButton(83, 48, 152, 66, false, "", {LIGHTGREY, BLACK, BLACK});
-// Button manAutoTButton(3, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
-// Button fxFanSpeed(240, 48, 75, 66, false, "", {LIGHTGREY, BLACK, BLACK});
-
 void initButtons(){
-  intensityIncTButton.initButton(&gfx, 83, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "+", 1, 1);
-  //intensityIncTButton.setFreeFont(&dodger320pt7b);
+  intensityIncTButton.initButtonUL(&gfx, 83, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "+", 5, 5);
   intensityIncTButton.drawButton();
-  intensityDecTButton.initButton(&gfx, 160, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "-");
+  intensityDecTButton.initButtonUL(&gfx, 160, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "-", 5, 5);
   intensityDecTButton.drawButton();
-  setRoofLightTButton.initButton(&gfx, 3, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
+  setRoofLightTButton.initButtonUL(&gfx, 3, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
   setRoofLightTButton.drawButton();
-  setOffPowerTButton.initButton(&gfx, 240, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
+  setOffPowerTButton.initButtonUL(&gfx, 240, 120, 75, 75, BLACK, LIGHTGREY, BLACK, "");
   setOffPowerTButton.drawButton();
-  switchHeatCoolTButton.initButton(&gfx, 83, 48, 152, 66, BLACK, LIGHTGREY, BLACK, "");
+  switchHeatCoolTButton.initButtonUL(&gfx, 83, 48, 152, 66, BLACK, LIGHTGREY, BLACK, "");
   switchHeatCoolTButton.drawButton();
-  manAutoTButton.initButton(&gfx, 3, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
+  manAutoTButton.initButtonUL(&gfx, 3, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
   manAutoTButton.drawButton();
-  fxFanSpeed.initButton(&gfx, 240, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
+  fxFanSpeed.initButtonUL(&gfx, 240, 48, 75, 66, BLACK, LIGHTGREY, BLACK, "");
   fxFanSpeed.drawButton();
-   //intensityDecTButton.setFreeFont(&dodger320pt7b);
 }
 
 
@@ -130,7 +116,9 @@ void redrawAutoManMode(){
 }
 
 void vibrate(){
+  return;
   M5.Power.setVibration(100);
+  Serial.println("Vibrating...");
   delay(100);
   M5.Power.setVibration(0);
 }
@@ -689,10 +677,12 @@ void setup(){
   Serial.begin(115200);
   auto cfgM5 = M5.config();
   //bool LCDEnable = true, bool SDEnable = true, bool SerialEnable = true, bool I2CEnable = false, mbus_mode_t mode = KMBusModeOutput
-  cfgM5.internal_rtc =true;
-  cfgM5.disable_rtc_irq = true;
+  // cfgM5.internal_rtc =true;
+  // cfgM5.disable_rtc_irq = true;
   M5.begin(cfgM5);
-  //M5.Rtc.begin();
+  if (!M5.Rtc.isEnabled()) {
+    Serial.println("RTC not found.");
+  }
   WiFi.mode(WIFI_STA);
   gfx.begin();
   gfx.clear(DISP_BACK_COLOR);
@@ -708,7 +698,6 @@ void setup(){
   initNetwork();
   initSerialDataM5Stack();
   initButtons();
-  //drawMaxImageZone();
   drawRoofLightZone();
   drawOffImageZone();
   drawManAutoImageZone();
@@ -770,60 +759,72 @@ void loop() {
     getCurrentTime();
 
   M5.update();
-  if (intensityIncTButton.justPressed()){
-    intensityIncButtonPressed();
-  }
-  if (intensityDecTButton.justPressed()){
-    intensityDecButtonPressed();
-  }
+  m5::touch_detail_t touchDetail = M5.Touch.getDetail();
 
-  if (setRoofLightTButton.justPressed()){
-    setRoofLightTButtonPressed();
-  }
-
-  if (setRoofLightTButton.justReleased()){
-    _reDrawImageButtons = true;
-  }
-
-  if (setOffPowerTButton.justPressed()){
-    setOffPowerTButtonPressed();
-  }
-
-  if (setOffPowerTButton.justReleased()){
-    _reDrawImageButtons = true;
-  }
-
-  if (fxFanSpeed.justPressed()){
-    fxFanSpeedTButtonPressed();
-  }
-  
-  if (fxFanSpeed.justReleased()){
-    _reDrawImageButtons = true;
-  }
-  
-  if (switchHeatCoolTButton.justPressed()){
-    vibrate();
-    switchHeatCoolTButtonPressed();
-  }
-
-  if (switchHeatCoolTButton.justReleased()){
-    _reDrawImageButtons = true;
-  }
-
-  if (manAutoTButton.justPressed()){
-    vibrate();
-    _currentState.autoMode = !_currentState.autoMode;
-    switchAutoManMode();
-  }
-
-  if (manAutoTButton.justReleased()){
-    reDrawImageButtons();
-  }
-  if (M5.Touch.getDetail().wasPressed()){
+  if (touchDetail.wasPressed()){
     if (_hmiDimmValue < 100){
       _hmiDimmValue = 100;
       _setHmiDimm = 1;
     }
+
+    if (intensityIncTButton.contains(touchDetail.x, touchDetail.y)){
+      Serial.printf("intensityIncTButton.justPressed()\n");
+      intensityIncButtonPressed();
+    }
+    if (intensityDecTButton.contains(touchDetail.x, touchDetail.y)){
+      Serial.printf("intensityDecTButton.justPressed()\n");
+      intensityDecButtonPressed();
+    }
+
+    if (setRoofLightTButton.contains(touchDetail.x, touchDetail.y)){
+      Serial.printf("setRoofLightTButton.justPressed()\n");
+      setRoofLightTButtonPressed();
+    }
+
+    if (setOffPowerTButton.contains(touchDetail.x, touchDetail.y)){
+      Serial.printf("setOffPowerTButton.justPressed()\n");
+      setOffPowerTButtonPressed();
+    }
+
+    if (fxFanSpeed.contains(touchDetail.x, touchDetail.y)){
+      Serial.printf("fxFanSpeed.justPressed()\n");
+      fxFanSpeedTButtonPressed();
+    }
+  
+    if (switchHeatCoolTButton.contains(touchDetail.x, touchDetail.y)){
+      Serial.printf("switchHeatCoolTButton.justPressed()\n");
+      vibrate();
+      switchHeatCoolTButtonPressed();
+    }
+    if (manAutoTButton.contains(touchDetail.x, touchDetail.y)){
+      Serial.printf("manAutoTButton.justPressed()\n");
+      vibrate();
+      _currentState.autoMode = !_currentState.autoMode;
+      switchAutoManMode();
+    }
   }
+
+  if (touchDetail.wasReleased()){
+      if (setRoofLightTButton.contains(touchDetail.x, touchDetail.y)){
+        Serial.printf("setRoofLightTButton.justReleased()\n");
+        reDrawImageButtons();
+      }
+      if (fxFanSpeed.contains(touchDetail.x, touchDetail.y)){
+        Serial.printf("fxFanSpeed.justReleased()\n");
+        reDrawImageButtons();
+      }
+      if (setOffPowerTButton.contains(touchDetail.x, touchDetail.y)){
+        Serial.printf("setOffPowerTButton.justReleased()\n");
+        reDrawImageButtons();
+      }
+      if (switchHeatCoolTButton.contains(touchDetail.x, touchDetail.y)){
+        Serial.printf("switchHeatCoolTButton.justReleased()\n");
+        reDrawImageButtons();
+      }
+      if (manAutoTButton.contains(touchDetail.x, touchDetail.y)){
+        reDrawImageButtons();
+      }
+  }
+
   delay(1);
 }
