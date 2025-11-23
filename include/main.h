@@ -19,6 +19,7 @@
 
 #define USE_SDCARD 
 #define USE_RTC
+#define USE_M5
 
 #define TIMER_WIFI_CHECK    1000      //ms
 #define TIMER_HVAC_UPDATE   500      //ms
