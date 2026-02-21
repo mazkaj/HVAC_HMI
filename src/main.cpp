@@ -4,6 +4,12 @@
 #include "SerialDataM5.h"
 #include "hvacHmi.h"
 #include "flexit.h"
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ElegantOTA.h>
+#include <Update.h>
+
+WebServer otaServer(80);
 
 extern currentState_t _currentState;
 extern netNodeParameter_t _netNodeParam;
@@ -24,6 +30,7 @@ uint8_t _getCurrentTempFlag = 0;
 uint8_t _updatePANFlag = 0;
 uint8_t _hmiDimmValue = 100;
 uint8_t _setHmiDimm = 1;
+uint8_t _otaInitialized = 0;
 int16_t _gapoTempValue;
 currentState_t _lastCurrentState;
 bool _reDrawImageButtons = false;
@@ -703,6 +710,10 @@ void setup(){
   drawManAutoImageZone();
   redrawAutoManMode();
   readConfiguration();
+  
+  // ElegantOTA - will be started in loop() after WiFi connects
+  Serial.println("ElegantOTA configured, waiting for WiFi...");
+  
   _reqHVACCurrentStateTicker.attach_ms(TIMER_HVAC_UPDATE, reqHVACCurrentState);
   _getCurrentTempTicker.attach_ms(TIMER_GET_TEMP, getCurrentTemp);
   _hmiDimmerTicker.attach(10, hmiDimmerTick);
@@ -712,9 +723,90 @@ void setup(){
   _currentState.roofLightState = LUX_INITIALIZE;
 }
 
+static bool _otaInProgress = false;
+static size_t _otaLastWritten = 0;
+
+void handleOTA() {
+  // Initialize ElegantOTA after WiFi is fully connected (wait for TCP connection)
+  if (_otaInitialized == 0 && 
+      (_netNodeParam.wiFiConnectionState == WIFI_TCPCONNECTED ||
+       _netNodeParam.wiFiConnectionState == WIFI_TCPREGISTERED ||
+       _netNodeParam.wiFiConnectionState == WIFI_TCPSENTTOSERVER ||
+       _netNodeParam.wiFiConnectionState == WIFI_TCPWAITINGFORANSWER ||
+       _netNodeParam.wiFiConnectionState == WIFI_TCPRECEIVEDDATA)) {
+    Serial.println("Network ready, initializing OTA...");
+    #if ELEGANTOTA_USE_ASYNC_WEBSERVER == 1
+      Serial.println(">>> ElegantOTA: ASYNC mode <<<");
+    #else
+      Serial.println(">>> ElegantOTA: SYNC mode <<<");
+    #endif
+    Serial.flush();
+    
+    otaServer.on("/", []() {
+      otaServer.send(200, "text/html", "<h1>HVAC HMI - M5Stack</h1><p><a href='/update'>OTA Update</a></p>");
+    });
+    
+    // Set callbacks BEFORE begin() 
+    ElegantOTA.onStart([]() {
+      Serial.println("=== CALLBACK: onStart ===");
+      Serial.flush();
+    });
+    Serial.println("onStart callback registered");
+    
+    ElegantOTA.onProgress([](size_t current, size_t final) {
+      // Print EVERY call for diagnostics
+      Serial.printf("=== CALLBACK: onProgress %u/%u ===\n", current, final);
+      Serial.flush();
+    });
+    Serial.println("onProgress callback registered");
+    
+    ElegantOTA.onEnd([](bool success) {
+      Serial.printf("=== CALLBACK: onEnd success=%d ===\n", success);
+      if (!success) {
+        Serial.printf("Error: %s\n", Update.errorString());
+      }
+      Serial.flush();
+    });
+    Serial.println("onEnd callback registered");
+    
+    // Now initialize ElegantOTA
+    ElegantOTA.begin(&otaServer);
+    Serial.println("ElegantOTA.begin() called");
+    
+    otaServer.begin();
+    _otaInitialized = 1;
+    Serial.printf("ElegantOTA ready at http://%s/update\n", WiFi.localIP().toString().c_str());
+    Serial.flush();
+  }
+  
+  if (_otaInitialized) {
+    otaServer.handleClient();
+    ElegantOTA.loop();
+    
+    // Direct monitoring of Update state (bypass ElegantOTA callbacks)
+    if (Update.isRunning()) {
+      if (!_otaInProgress) {
+        Serial.println("=== Update.isRunning() detected ===");
+        _otaInProgress = true;
+        _otaLastWritten = 0;
+      }
+      size_t written = Update.progress();
+      if (written > _otaLastWritten + 50000) {  // Report every ~50KB
+        Serial.printf("=== Update progress: %u bytes written ===\n", written);
+        _otaLastWritten = written;
+      }
+    } else if (_otaInProgress) {
+      Serial.println("=== Update finished (isRunning=false) ===");
+      _otaInProgress = false;
+    }
+  }
+}
+
 void loop() {
 
   uint8_t receivedBuffer[TCP_BUFFER_SIZE];
+
+  handleOTA();
 
   displayTime();
   if (_setHmiDimm == 1){

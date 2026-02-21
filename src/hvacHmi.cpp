@@ -5,6 +5,7 @@
 #include "OneWire.h"
 #include "DallasTemperature.h"
 #include "DFRobot_SHT40.h"
+#include <Wire.h>
 
 uint32_t calculateLUX(uint8_t highByte, uint8_t lowByte);
 void processAnswerFromServer(uint8_t *receivedBuffer);
